@@ -7,8 +7,7 @@ export default function GitHubLoginBtn() {
   const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID!;
 
   const loginWithGithub = () => {
-    const redirectUri =
-      "https://dashboard-ezo6.onrender.com/auth/github/callback";
+    const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL}/auth/github/callback`;
 
     const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
 
