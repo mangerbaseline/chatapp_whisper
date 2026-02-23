@@ -31,8 +31,14 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const loading = useAppSelector((state) => state.chat.messagesLoading);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
   const { socket, isConnected, onlineUsers } = useSocket();
   const currentUser = useAppSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    notificationSoundRef.current = new Audio("/notification.wav");
+    notificationSoundRef.current.volume = 0.5;
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -69,6 +75,15 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
     const handleNewMessage = (message: any) => {
       dispatch(addMessage(message));
       setTimeout(scrollToBottom, 100);
+
+      const senderId =
+        typeof message.sender === "string"
+          ? message.sender
+          : message.sender?._id;
+      if (senderId !== currentUser?._id && notificationSoundRef.current) {
+        notificationSoundRef.current.currentTime = 0;
+        notificationSoundRef.current.play().catch(() => {});
+      }
     };
 
     const handleUserTyping = ({

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRef, useEffect } from "react";
 import InviteNotificationBadge from "@/components/chat/InviteNotificationBadge";
 import PendingInvitesDialog from "@/components/chat/PendingInvitesDialog";
 import { useSocket } from "@/components/SocketProvider";
@@ -17,6 +18,12 @@ export default function InviteNotifications() {
   const receivedInvitations = useAppSelector(
     (state) => state.connections.receivedInvitations,
   );
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    notificationSoundRef.current = new Audio("/notification.wav");
+    notificationSoundRef.current.volume = 0.5;
+  }, []);
 
   React.useEffect(() => {
     dispatch(fetchInvitations({ type: "received", status: "pending" }));
@@ -24,6 +31,10 @@ export default function InviteNotifications() {
     if (socket) {
       const handleInviteReceived = (invitation: any) => {
         dispatch(addReceivedInvitation(invitation));
+        if (notificationSoundRef.current) {
+          notificationSoundRef.current.currentTime = 0;
+          notificationSoundRef.current.play().catch(() => {});
+        }
       };
 
       socket.on("invite:received", handleInviteReceived);

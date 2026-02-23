@@ -21,7 +21,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export function CallOverlay() {
   const dispatch = useAppDispatch();
@@ -34,6 +34,31 @@ export function CallOverlay() {
     useWebRTC();
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const ringAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (status === "receiving") {
+      const audio = new Audio("/ring.mp3");
+      audio.loop = true;
+      audio.volume = 0.8;
+      audio.play().catch(() => {});
+      ringAudioRef.current = audio;
+    } else {
+      if (ringAudioRef.current) {
+        ringAudioRef.current.pause();
+        ringAudioRef.current.currentTime = 0;
+        ringAudioRef.current = null;
+      }
+    }
+
+    return () => {
+      if (ringAudioRef.current) {
+        ringAudioRef.current.pause();
+        ringAudioRef.current.currentTime = 0;
+        ringAudioRef.current = null;
+      }
+    };
+  }, [status]);
 
   if (status === "idle") return null;
 
