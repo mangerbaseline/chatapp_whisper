@@ -38,6 +38,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     isActive: true,
     lastSeen: true,
     activityStatus: true,
+    isDeactivated: true,
+    consecutiveLoginDays: true,
   });
 
   if (!users) {

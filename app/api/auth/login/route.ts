@@ -1,12 +1,41 @@
 import { signToken } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
 import { comparePassword } from "@/lib/hash";
-import User, { ActivityStatus } from "@/models/User";
+import User from "@/models/User";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
 import { loginSchema } from "@/verification/auth.verification";
 import { NextRequest } from "next/server";
+
+function updateLoginStreak(user: any) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const lastLogin = user.lastLoginDate ? new Date(user.lastLoginDate) : null;
+
+  if (lastLogin) {
+    const lastLoginDay = new Date(
+      lastLogin.getFullYear(),
+      lastLogin.getMonth(),
+      lastLogin.getDate(),
+    );
+    const diffMs = today.getTime() - lastLoginDay.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      user.consecutiveLoginDays = (user.consecutiveLoginDays || 0) + 1;
+    } else if (diffDays === 0) {
+      // Already logged in today, no change
+    } else {
+      user.consecutiveLoginDays = 1;
+    }
+  } else {
+    user.consecutiveLoginDays = 1;
+  }
+
+  user.lastLoginDate = now;
+  user.lastSeen = now;
+}
 
 export const POST = withApiHandler(async (req: NextRequest) => {
   await dbConnect();
@@ -36,14 +65,22 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     );
   }
 
+  if (user.isDeactivated === true) {
+    const error = new ApiError(
+      403,
+      "Your account has been deactivated due to inactivity. Please verify OTP to reactivate.",
+    );
+    (error as any).isDeactivated = true;
+    throw error;
+  }
+
   const comparedPassword = await comparePassword(password, user.password!);
 
   if (!comparedPassword) {
     throw new ApiError(401, "Invalid email or password.");
   }
 
-  user.lastSeen = new Date();
-  user.activityStatus = ActivityStatus.ACTIVE;
+  updateLoginStreak(user);
   await user.save();
 
   const token = signToken({

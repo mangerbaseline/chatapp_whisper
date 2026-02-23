@@ -67,11 +67,10 @@ app.prepare().then(() => {
     const UserSchema = new mongoose.Schema(
       {
         lastSeen: { type: Date, default: Date.now },
-        activityStatus: {
-          type: String,
-          enum: ["active", "idle", "inactive"],
-          default: "active",
-        },
+        consecutiveLoginDays: { type: Number, default: 0 },
+        lastLoginDate: { type: Date, default: Date.now },
+        isDeactivated: { type: Boolean, default: false },
+        deactivatedAt: { type: Date, default: null },
       },
       { timestamps: true, strict: false },
     );
@@ -89,7 +88,6 @@ app.prepare().then(() => {
         const UserModel = getUserModel();
         await UserModel.findByIdAndUpdate(socket.userId, {
           lastSeen: new Date(),
-          activityStatus: "active",
         });
       }
     } catch (err) {
@@ -366,8 +364,7 @@ app.prepare().then(() => {
 
   eventCheckInterval = setInterval(checkUpcomingEvents, 60 * 1000);
 
-  // ─── Activity Status Checker (runs every 24 hours) ───
-  async function updateActivityStatuses() {
+  async function checkDeactivation() {
     try {
       const mongoose = require("mongoose");
       if (mongoose.connection.readyState !== 1) {
@@ -381,42 +378,34 @@ app.prepare().then(() => {
       const UserModel = getUserModel();
 
       const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
-
-      const inactiveResult = await UserModel.updateMany(
-        {
-          lastSeen: { $lt: fiveDaysAgo },
-          activityStatus: { $ne: "inactive" },
-        },
-        { $set: { activityStatus: "inactive" } },
+      const fortyFiveDaysAgo = new Date(
+        now.getTime() - 45 * 24 * 60 * 60 * 1000,
       );
 
-      const idleResult = await UserModel.updateMany(
+      const deactivatedResult = await UserModel.updateMany(
         {
-          lastSeen: { $gte: fiveDaysAgo, $lt: threeDaysAgo },
-          activityStatus: { $ne: "idle" },
+          lastSeen: { $lt: fortyFiveDaysAgo },
+          isDeactivated: { $ne: true },
         },
-        { $set: { activityStatus: "idle" } },
-      );
-      const activeResult = await UserModel.updateMany(
         {
-          lastSeen: { $gte: threeDaysAgo },
-          activityStatus: { $ne: "active" },
+          $set: {
+            isDeactivated: true,
+            deactivatedAt: now,
+            consecutiveLoginDays: 0,
+          },
         },
-        { $set: { activityStatus: "active" } },
       );
 
       console.log(
-        `[Activity Status Check] Updated: ${inactiveResult.modifiedCount} inactive, ${idleResult.modifiedCount} idle, ${activeResult.modifiedCount} active`,
+        `[Deactivation Check] Deactivated: ${deactivatedResult.modifiedCount} users`,
       );
     } catch (err) {
-      console.error("[Activity Status Check Error]", err);
+      console.error("[Deactivation Check Error]", err);
     }
   }
 
   const activityCheckInterval = setInterval(
-    updateActivityStatuses,
+    checkDeactivation,
     24 * 60 * 60 * 1000,
   );
 
@@ -427,12 +416,12 @@ app.prepare().then(() => {
       .then(() => {
         console.log("🔌 MongoDB connected in server.js");
         checkUpcomingEvents();
-        updateActivityStatuses();
+        checkDeactivation();
       })
       .catch((err) => console.error("[server.js] MongoDB connect error:", err));
   } else {
     checkUpcomingEvents();
-    updateActivityStatuses();
+    checkDeactivation();
   }
 
   httpServer

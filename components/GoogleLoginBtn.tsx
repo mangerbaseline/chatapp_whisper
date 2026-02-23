@@ -30,8 +30,18 @@ export default function GoogleLoginBtn() {
             router.push("/");
             router.refresh();
           }, 100);
-        } catch {
-          toast.error("Google login failed");
+        } catch (err: any) {
+          const msg = err?.message || "Google login failed";
+          if (msg.toLowerCase().includes("deactivated")) {
+            toast.error(
+              "Your account has been deactivated. Redirecting to reactivation...",
+            );
+            setTimeout(() => {
+              router.push("/reactivate");
+            }, 1500);
+          } else {
+            toast.error(msg);
+          }
         }
       }}
       onError={() => toast.error("Google login failed")}

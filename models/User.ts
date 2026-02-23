@@ -1,11 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
-export enum ActivityStatus {
-  ACTIVE = "active",
-  IDLE = "idle",
-  INACTIVE = "inactive",
-}
-
 export enum UserRole {
   USER = "USER",
   ADMIN = "ADMIN",
@@ -30,7 +24,10 @@ export interface IUser extends Document {
   image?: string;
   isActive: boolean;
   lastSeen: Date;
-  activityStatus: ActivityStatus;
+  consecutiveLoginDays: number;
+  lastLoginDate: Date;
+  isDeactivated: boolean;
+  deactivatedAt?: Date | null;
   connections: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -113,10 +110,21 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       default: Date.now,
     },
-    activityStatus: {
-      type: String,
-      enum: Object.values(ActivityStatus),
-      default: ActivityStatus.ACTIVE,
+    consecutiveLoginDays: {
+      type: Number,
+      default: 0,
+    },
+    lastLoginDate: {
+      type: Date,
+      default: Date.now,
+    },
+    isDeactivated: {
+      type: Boolean,
+      default: false,
+    },
+    deactivatedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

@@ -61,12 +61,8 @@ const activityChartConfig = {
     label: "Active",
     color: "oklch(0.72 0.19 149.58)",
   },
-  Idle: {
-    label: "Idle",
-    color: "oklch(0.80 0.15 85)",
-  },
-  Inactive: {
-    label: "Inactive",
+  Deactivated: {
+    label: "Deactivated",
     color: "oklch(0.64 0.21 25.33)",
   },
 } satisfies ChartConfig;
@@ -85,8 +81,8 @@ const statusChartConfig = {
 interface DashboardData {
   totalUsers: number;
   activeUsers: number;
-  idleUsers: number;
-  inactiveUsers: number;
+  deactivatedUsers: number;
+  todaysActiveUsers: number;
   enabledUsers: number;
   disabledUsers: number;
   monthlyRegistrations: { month: string; year: number; users: number }[];
@@ -100,7 +96,8 @@ interface DashboardData {
     lastName?: string;
     image?: string;
     isActive: boolean;
-    activityStatus: string;
+    isDeactivated?: boolean;
+    consecutiveLoginDays?: number;
     createdAt: string;
     provider?: string;
   }[];
@@ -117,11 +114,7 @@ function formatTimeAgo(date: Date): string {
   return date.toLocaleDateString();
 }
 
-const PIE_COLORS = [
-  "oklch(0.72 0.19 149.58)",
-  "oklch(0.80 0.15 85)",
-  "oklch(0.64 0.21 25.33)",
-];
+const PIE_COLORS = ["oklch(0.72 0.19 149.58)", "oklch(0.64 0.21 25.33)"];
 
 function StatCard({
   title,
@@ -219,23 +212,23 @@ export default function DashboardPage() {
         <StatCard
           title="Active Users"
           value={data.activeUsers}
-          description="Currently active"
+          description="Currently active accounts"
           icon={UserCheck}
           accentClass="bg-emerald-500"
           delay={100}
         />
         <StatCard
-          title="Inactive Users"
-          value={data.inactiveUsers}
-          description="Inactive accounts"
+          title="Deactivated Users"
+          value={data.deactivatedUsers}
+          description="Inactive for 45+ days"
           icon={UserX}
           accentClass="bg-red-500"
           delay={200}
         />
         <StatCard
-          title="Idle Users"
-          value={data.idleUsers}
-          description="Idle users"
+          title="Today's Active"
+          value={data.todaysActiveUsers}
+          description="Logged in today"
           icon={Clock}
           accentClass="bg-amber-500"
           delay={300}
@@ -478,18 +471,12 @@ export default function DashboardPage() {
                       <Badge
                         variant="outline"
                         className={
-                          user.activityStatus === "active"
-                            ? "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
-                            : user.activityStatus === "idle"
-                              ? "border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30"
-                              : "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30"
+                          user.isDeactivated
+                            ? "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30"
+                            : "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
                         }
                       >
-                        {user.activityStatus === "active"
-                          ? "Active"
-                          : user.activityStatus === "idle"
-                            ? "Idle"
-                            : "Inactive"}
+                        {user.isDeactivated ? "Deactivated" : "Active"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">

@@ -160,26 +160,22 @@ export default function ManageUsers() {
                       <Badge
                         variant="outline"
                         className={
-                          user.activityStatus === "active"
-                            ? "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
-                            : user.activityStatus === "idle"
-                              ? "border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30"
-                              : "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30"
+                          user.isDeactivated
+                            ? "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30"
+                            : "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
                         }
                       >
                         <Clock className="h-3 w-3 mr-1" />
-                        {user.activityStatus === "active"
-                          ? "Active"
-                          : user.activityStatus === "idle"
-                            ? "Idle"
-                            : "Inactive"}
+                        {user.isDeactivated ? "Deactivated" : "Active"}
+                        {!user.isDeactivated && user.consecutiveLoginDays > 0
+                          ? ` (${user.consecutiveLoginDays}d streak)`
+                          : ""}
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Auto-tracked based on login activity</p>
                       <p className="text-xs">
-                        Active: within 3 days • Idle: 3-5 days • Inactive: 5+
-                        days
+                        Users are deactivated after 45 days of no login
                       </p>
                     </TooltipContent>
                   </Tooltip>

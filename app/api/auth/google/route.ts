@@ -1,6 +1,6 @@
 import { signToken } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
-import User, { ActivityStatus } from "@/models/User";
+import User from "@/models/User";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
@@ -8,6 +8,35 @@ import { OAuth2Client } from "google-auth-library";
 import { NextRequest } from "next/server";
 
 const client = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+
+function updateLoginStreak(user: any) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const lastLogin = user.lastLoginDate ? new Date(user.lastLoginDate) : null;
+
+  if (lastLogin) {
+    const lastLoginDay = new Date(
+      lastLogin.getFullYear(),
+      lastLogin.getMonth(),
+      lastLogin.getDate(),
+    );
+    const diffMs = today.getTime() - lastLoginDay.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      user.consecutiveLoginDays = (user.consecutiveLoginDays || 0) + 1;
+    } else if (diffDays === 0) {
+      // Already logged in today, no change
+    } else {
+      user.consecutiveLoginDays = 1;
+    }
+  } else {
+    user.consecutiveLoginDays = 1;
+  }
+
+  user.lastLoginDate = now;
+  user.lastSeen = now;
+}
 
 export const POST = withApiHandler(async (req: NextRequest) => {
   const { token } = await req.json();
@@ -50,8 +79,16 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw new ApiError(400, "User not created. Try again ...");
   }
 
-  createdUser.lastSeen = new Date();
-  createdUser.activityStatus = ActivityStatus.ACTIVE;
+  if (createdUser.isDeactivated === true) {
+    const error = new ApiError(
+      403,
+      "Your account has been deactivated due to inactivity. Please verify OTP to reactivate.",
+    );
+    (error as any).isDeactivated = true;
+    throw error;
+  }
+
+  updateLoginStreak(createdUser);
   await createdUser.save();
 
   const appToken = signToken({

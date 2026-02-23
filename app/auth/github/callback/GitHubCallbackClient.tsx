@@ -28,7 +28,17 @@ export default function GitHubCallbackClient() {
         router.push("/");
       })
       .catch((err) => {
-        toast.error(err?.message || "GitHub login failed");
+        const msg = err?.message || "GitHub login failed";
+        if (msg.toLowerCase().includes("deactivated")) {
+          toast.error(
+            "Your account has been deactivated. Redirecting to reactivation...",
+          );
+          setTimeout(() => {
+            router.push("/reactivate");
+          }, 1500);
+        } else {
+          toast.error(msg);
+        }
       });
   }, [params, dispatch, router]);
 

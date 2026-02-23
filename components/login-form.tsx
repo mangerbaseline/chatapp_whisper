@@ -69,7 +69,17 @@ export function LoginForm() {
         router.refresh();
       }, 100);
     } catch (err: any) {
-      toast.error(err?.message || "Login failed.");
+      const msg = err?.message || "Login failed.";
+      if (msg.toLowerCase().includes("deactivated")) {
+        toast.error(
+          "Your account has been deactivated. Redirecting to reactivation...",
+        );
+        setTimeout(() => {
+          router.push("/reactivate");
+        }, 1500);
+      } else {
+        toast.error(msg);
+      }
     }
   };
 

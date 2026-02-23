@@ -27,8 +27,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       lastName: true,
       image: true,
       isActive: true,
-      activityStatus: true,
+      isDeactivated: true,
       lastSeen: true,
+      lastLoginDate: true,
+      consecutiveLoginDays: true,
       createdAt: true,
       provider: true,
     })
@@ -36,16 +38,24 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   const totalUsers = allUsers.length;
   const activeUsers = allUsers.filter(
-    (u) => u.activityStatus === "active",
+    (u) => !u.isDeactivated && u.isActive,
   ).length;
-  const idleUsers = allUsers.filter((u) => u.activityStatus === "idle").length;
-  const inactiveUsers = allUsers.filter(
-    (u) => u.activityStatus === "inactive",
-  ).length;
+  const deactivatedUsers = allUsers.filter((u) => u.isDeactivated).length;
+
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const todaysActiveUsers = allUsers.filter((u) => {
+    if (!u.lastLoginDate) return false;
+    return new Date(u.lastLoginDate) >= startOfToday;
+  }).length;
+
   const enabledUsers = allUsers.filter((u) => u.isActive).length;
   const disabledUsers = allUsers.filter((u) => !u.isActive).length;
 
-  const now = new Date();
   const monthlyRegistrations = [];
   for (let i = 5; i >= 0; i--) {
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -89,15 +99,14 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     {
       totalUsers,
       activeUsers,
-      idleUsers,
-      inactiveUsers,
+      deactivatedUsers,
+      todaysActiveUsers,
       enabledUsers,
       disabledUsers,
       monthlyRegistrations,
       activityDistribution: [
         { name: "Active", value: activeUsers },
-        { name: "Idle", value: idleUsers },
-        { name: "Inactive", value: inactiveUsers },
+        { name: "Deactivated", value: deactivatedUsers },
       ],
       statusDistribution: [
         { name: "Enabled", value: enabledUsers },
