@@ -1,11 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import axios from "axios";
 import DashboardHeader from "@/components/DashboardHeader";
-import { QuickActions } from "@/components/QuickActions";
-import { RecentActivity } from "@/components/RecentActivity";
-import { RevenueChart } from "@/components/RevenueChart";
-import { StatCard } from "@/components/StatCard";
-import { TrafficSources } from "@/components/TrafficSources";
 import {
   Card,
   CardContent,
@@ -13,197 +10,498 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
+import {
+  Bar,
+  BarChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Pie,
+  PieChart,
+  Cell,
 } from "recharts";
+import {
+  Users,
+  UserCheck,
+  UserX,
+  Clock,
+  TrendingUp,
+  Activity,
+  Shield,
+} from "lucide-react";
 
-export default function page() {
-  const performanceData = [
-    { subject: "Speed", A: 85, fullMark: 100 },
-    { subject: "Security", A: 92, fullMark: 100 },
-    { subject: "SEO", A: 78, fullMark: 100 },
-    { subject: "Accessibility", A: 88, fullMark: 100 },
-    { subject: "Best Practices", A: 95, fullMark: 100 },
-    { subject: "PWA", A: 70, fullMark: 100 },
-  ];
-  const stats = [
-    {
-      title: "Total Revenue",
-      value: "$62,400",
-      change: 12.5,
-      icon: "dollar-sign" as const,
-      trend: "up" as const,
-    },
-    {
-      title: "Active Users",
-      value: "7,245",
-      change: 8.2,
-      icon: "users" as const,
-      trend: "up" as const,
-    },
-    {
-      title: "Conversion Rate",
-      value: "4.28%",
-      change: -2.1,
-      icon: "activity" as const,
-      trend: "down" as const,
-    },
-    {
-      title: "Growth Rate",
-      value: "24.5%",
-      change: 18.3,
-      icon: "trending-up" as const,
-      trend: "up" as const,
-    },
-  ];
+const registrationChartConfig = {
+  users: {
+    label: "Registrations",
+    color: "var(--color-chart-1)",
+  },
+} satisfies ChartConfig;
 
-  const primaryColor = "hsl(217, 91%, 60%)";
-  const accentColor = "hsl(172, 66%, 50%)";
-  const chartYellow = "hsl(43, 96%, 56%)";
+const activityChartConfig = {
+  Active: {
+    label: "Active",
+    color: "oklch(0.72 0.19 149.58)",
+  },
+  Idle: {
+    label: "Idle",
+    color: "oklch(0.80 0.15 85)",
+  },
+  Inactive: {
+    label: "Inactive",
+    color: "oklch(0.64 0.21 25.33)",
+  },
+} satisfies ChartConfig;
 
+const statusChartConfig = {
+  Enabled: {
+    label: "Enabled",
+    color: "var(--color-chart-1)",
+  },
+  Disabled: {
+    label: "Disabled",
+    color: "var(--color-chart-4)",
+  },
+} satisfies ChartConfig;
+
+interface DashboardData {
+  totalUsers: number;
+  activeUsers: number;
+  idleUsers: number;
+  inactiveUsers: number;
+  enabledUsers: number;
+  disabledUsers: number;
+  monthlyRegistrations: { month: string; year: number; users: number }[];
+  activityDistribution: { name: string; value: number }[];
+  statusDistribution: { name: string; value: number }[];
+  providerDistribution: { name: string; value: number }[];
+  recentUsers: {
+    _id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    image?: string;
+    isActive: boolean;
+    activityStatus: string;
+    createdAt: string;
+    provider?: string;
+  }[];
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return date.toLocaleDateString();
+}
+
+const PIE_COLORS = [
+  "oklch(0.72 0.19 149.58)",
+  "oklch(0.80 0.15 85)",
+  "oklch(0.64 0.21 25.33)",
+];
+
+function StatCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  accentClass,
+  delay,
+}: {
+  title: string;
+  value: number;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accentClass: string;
+  delay: number;
+}) {
   return (
-    <>
-      <DashboardHeader />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6 mt-2">
-        {stats.map((stat, index) => (
-          <StatCard key={stat.title} {...stat} delay={index * 100} />
+    <Card
+      className="relative overflow-hidden opacity-0 animate-fade-in group hover:shadow-lg transition-all duration-300"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className={`absolute inset-0 opacity-[0.04] ${accentClass}`} />
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <div
+          className={`p-2 rounded-lg ${accentClass} transition-transform duration-300 group-hover:scale-110`}
+        >
+          <Icon className="h-4 w-4 text-white" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <Skeleton className="h-6 w-64" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-3 mb-6">
-        <RevenueChart />
-        <TrafficSources />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-xl" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios
+      .get("/api/admin/dashboard")
+      .then((res) => setData(res.data.data))
+      .catch((err) => console.error("Dashboard fetch error:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !data) return <DashboardSkeleton />;
+
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-400 mx-auto">
+      <div className="flex flex-col gap-1">
+        <DashboardHeader />
+        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+          <Activity className="h-3.5 w-3.5" />
+          Real-time overview of your platform
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RecentActivity />
-
-        <div className="grid gap-6 grid-cols-2 content-start">
-          <div
-            className="col-span-2 rounded-xl bg-linear-to-br from-primary to-primary/80 p-6 text-primary-foreground opacity-0 animate-fade-in"
-            style={{ animationDelay: "500ms" }}
-          >
-            <h3 className="text-lg font-semibold mb-2">Pro Tip</h3>
-            <p className="text-sm text-primary-foreground/80 mb-4">
-              Increase engagement by 40% with personalized user onboarding
-              flows.
-            </p>
-            <button className="text-sm font-medium underline underline-offset-4 hover:no-underline">
-              Learn more
-            </button>
-          </div>
-
-          <div
-            className="rounded-xl border border-border/50 bg-card p-6 opacity-0 animate-fade-in"
-            style={{ animationDelay: "600ms" }}
-          >
-            <p className="text-sm text-muted-foreground">Avg. Session</p>
-            <p className="text-2xl font-bold text-foreground mt-1">4m 32s</p>
-            <p className="text-xs text-accent mt-2">+12% from last week</p>
-          </div>
-
-          <div
-            className="rounded-xl border border-border/50 bg-card p-6 opacity-0 animate-fade-in"
-            style={{ animationDelay: "700ms" }}
-          >
-            <p className="text-sm text-muted-foreground">Bounce Rate</p>
-            <p className="text-2xl font-bold text-foreground mt-1">32.4%</p>
-            <p className="text-xs text-destructive mt-2">-5% from last week</p>
-          </div>
-
-          <QuickActions />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Users"
+          value={data.totalUsers}
+          description="All registered users"
+          icon={Users}
+          accentClass="bg-primary"
+          delay={0}
+        />
+        <StatCard
+          title="Active Users"
+          value={data.activeUsers}
+          description="Currently active"
+          icon={UserCheck}
+          accentClass="bg-emerald-500"
+          delay={100}
+        />
+        <StatCard
+          title="Inactive Users"
+          value={data.inactiveUsers}
+          description="Inactive accounts"
+          icon={UserX}
+          accentClass="bg-red-500"
+          delay={200}
+        />
+        <StatCard
+          title="Idle Users"
+          value={data.idleUsers}
+          description="Idle users"
+          icon={Clock}
+          accentClass="bg-amber-500"
+          delay={300}
+        />
       </div>
-      <div className="grid gap-6 lg:grid-cols-2 mt-3">
+
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
         <Card
-          className="border-border/50 bg-card opacity-0 animate-fade-in"
+          className="lg:col-span-4 opacity-0 animate-fade-in"
           style={{ animationDelay: "200ms" }}
         >
           <CardHeader>
-            <CardTitle className="text-foreground">Performance Score</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Lighthouse metrics overview
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  User Registrations
+                </CardTitle>
+                <CardDescription>Last 6 months</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="h-87.5">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart
+            <ChartContainer
+              config={registrationChartConfig}
+              className="h-65 w-full"
+            >
+              <BarChart
+                data={data.monthlyRegistrations}
+                margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12 }}
+                  allowDecimals={false}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="users"
+                  fill="var(--color-chart-1)"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={48}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="lg:col-span-3 opacity-0 animate-fade-in"
+          style={{ animationDelay: "300ms" }}
+        >
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              Activity Distribution
+            </CardTitle>
+            <CardDescription>User activity breakdown</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center">
+            <ChartContainer
+              config={activityChartConfig}
+              className="h-50 w-full max-w-70"
+            >
+              <PieChart>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Pie
+                  data={data.activityDistribution}
+                  dataKey="value"
+                  nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius="80%"
-                  data={performanceData}
+                  innerRadius={50}
+                  outerRadius={80}
+                  strokeWidth={2}
+                  stroke="var(--color-background)"
                 >
-                  <PolarGrid stroke="hsl(240, 5.9%, 90%)" />
-                  <PolarAngleAxis
-                    dataKey="subject"
-                    tick={{ fill: "hsl(240, 3.8%, 46.1%)", fontSize: 12 }}
+                  {data.activityDistribution.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={PIE_COLORS[index % PIE_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <ChartLegend content={<ChartLegendContent />} />
+              </PieChart>
+            </ChartContainer>
+            <div className="flex gap-6 mt-2 text-sm">
+              {data.activityDistribution.map((item, i) => (
+                <div key={item.name} className="flex items-center gap-1.5">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: PIE_COLORS[i] }}
                   />
-                  <PolarRadiusAxis
-                    angle={30}
-                    domain={[0, 100]}
-                    tick={{ fill: "hsl(240, 3.8%, 46.1%)", fontSize: 10 }}
-                  />
-                  <Radar
-                    name="Score"
-                    dataKey="A"
-                    stroke={primaryColor}
-                    fill={primaryColor}
-                    fillOpacity={0.3}
-                    strokeWidth={2}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+                  <span className="text-muted-foreground">{item.name}</span>
+                  <span className="font-semibold">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+        <Card
+          className="lg:col-span-3 opacity-0 animate-fade-in"
+          style={{ animationDelay: "400ms" }}
+        >
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-primary" />
+              Account Status
+            </CardTitle>
+            <CardDescription>Enabled vs Disabled accounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={statusChartConfig} className="h-55 w-full">
+              <BarChart
+                data={data.statusDistribution}
+                layout="vertical"
+                margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  className="opacity-30"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 13 }}
+                  width={70}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={36}>
+                  {data.statusDistribution.map((entry) => (
+                    <Cell
+                      key={entry.name}
+                      fill={
+                        entry.name === "Enabled"
+                          ? "var(--color-chart-1)"
+                          : "var(--color-chart-4)"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+            <div className="flex items-center justify-center gap-6 mt-3 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-chart-1" />
+                <span className="text-muted-foreground">Enabled</span>
+                <span className="font-semibold">{data.enabledUsers}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-chart-4" />
+                <span className="text-muted-foreground">Disabled</span>
+                <span className="font-semibold">{data.disabledUsers}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card
-          className="border-border/50 bg-card opacity-0 animate-fade-in"
-          style={{ animationDelay: "300ms" }}
+          className="lg:col-span-4 opacity-0 animate-fade-in"
+          style={{ animationDelay: "500ms" }}
         >
           <CardHeader>
-            <CardTitle className="text-foreground">Score Breakdown</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Individual metric scores
-            </CardDescription>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              Recent Users
+            </CardTitle>
+            <CardDescription>Latest registered users</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {performanceData.map((item, index) => (
-              <div
-                key={item.subject}
-                className="space-y-2 opacity-0 animate-slide-in"
-                style={{ animationDelay: `${400 + index * 100}ms` }}
-              >
-                <div className="flex justify-between text-sm">
-                  <span className="text-foreground font-medium">
-                    {item.subject}
-                  </span>
-                  <span className="text-muted-foreground">{item.A}/100</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-1000 ease-out"
-                    style={{
-                      width: `${item.A}%`,
-                      backgroundColor:
-                        item.A >= 90
-                          ? accentColor
-                          : item.A >= 70
-                            ? primaryColor
-                            : chartYellow,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+          <CardContent className="px-2 sm:px-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Activity
+                  </TableHead>
+                  <TableHead className="text-right">Joined</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.recentUsers.map((user) => (
+                  <TableRow key={user._id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.image} />
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {user.firstName?.[0] || ""}
+                            {(
+                              user.lastName?.[0] ||
+                              user.email[0] ||
+                              ""
+                            ).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {user.firstName
+                              ? `${user.firstName} ${user.lastName || ""}`
+                              : user.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate hidden sm:block">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge
+                        variant={user.isActive ? "default" : "destructive"}
+                        className="text-[11px]"
+                      >
+                        {user.isActive ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge
+                        variant="outline"
+                        className={
+                          user.activityStatus === "active"
+                            ? "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
+                            : user.activityStatus === "idle"
+                              ? "border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30"
+                              : "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30"
+                        }
+                      >
+                        {user.activityStatus === "active"
+                          ? "Active"
+                          : user.activityStatus === "idle"
+                            ? "Idle"
+                            : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                      {formatTimeAgo(new Date(user.createdAt))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   );
 }

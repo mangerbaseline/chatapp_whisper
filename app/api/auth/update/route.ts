@@ -17,7 +17,8 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
     throw parsed.error;
   }
 
-  const { email, firstName, lastName, dateOfBirth, address } = parsed.data;
+  const { email, firstName, lastName, dateOfBirth, address, mobileNo } =
+    parsed.data;
 
   const exist = await User.findOne({
     email,
@@ -35,6 +36,7 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
       lastName,
       dateOfBirth,
       address,
+      mobileNo: mobileNo || undefined,
     },
   );
 
@@ -49,6 +51,7 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
     address: true,
     dateOfBirth: true,
     image: true,
+    mobileNo: true,
   });
 
   return apiSuccess(200, user, "User updated successfully.");

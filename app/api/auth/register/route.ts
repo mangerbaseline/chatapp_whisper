@@ -17,8 +17,15 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw parsed.error;
   }
 
-  const { email, password, firstName, lastName, dateOfBirth, address } =
-    parsed.data;
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    dateOfBirth,
+    address,
+    mobileNo,
+  } = parsed.data;
 
   const exists = await User.findOne({
     email,
@@ -39,6 +46,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     lastName,
     dateOfBirth: new Date(dateOfBirth),
     address,
+    mobileNo: mobileNo || undefined,
     provider: "credentials",
   });
 

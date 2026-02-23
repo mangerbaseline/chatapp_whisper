@@ -32,6 +32,7 @@ type SignupFormState = {
   password: string;
   confirmPassword: string;
   address: string;
+  mobileNo: string;
   dob?: Date;
 };
 
@@ -52,6 +53,7 @@ export function SignupForm() {
     password: "",
     confirmPassword: "",
     address: "",
+    mobileNo: "",
     dob: undefined,
   });
 
@@ -64,6 +66,7 @@ export function SignupForm() {
     firstName: formData.firstName,
     lastName: formData.lastName,
     address: formData.address,
+    mobileNo: formData.mobileNo || undefined,
     dateOfBirth: formData.dob ? formData.dob.toISOString().split("T")[0] : "",
   };
 
@@ -259,6 +262,24 @@ export function SignupForm() {
                 {errors.address && (
                   <p className="text-destructive text-xs mt-1">
                     {errors.address[0]}
+                  </p>
+                )}
+              </FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="mobile-no">Mobile Number</FieldLabel>
+              <Input
+                id="mobile-no"
+                name="mobileNo"
+                type="tel"
+                value={formData.mobileNo}
+                onChange={handleChange}
+                placeholder="e.g. 234 567 8900"
+              />
+              <FieldDescription>
+                {errors.mobileNo && (
+                  <p className="text-destructive text-xs mt-1">
+                    {errors.mobileNo[0]}
                   </p>
                 )}
               </FieldDescription>

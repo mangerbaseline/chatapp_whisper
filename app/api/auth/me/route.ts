@@ -21,6 +21,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     lastName: true,
     dateOfBirth: true,
     address: true,
+    mobileNo: true,
     image: true,
     createdAt: true,
   });

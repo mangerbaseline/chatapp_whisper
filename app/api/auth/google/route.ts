@@ -1,6 +1,6 @@
 import { signToken } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
-import User from "@/models/User";
+import User, { ActivityStatus } from "@/models/User";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
@@ -49,6 +49,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   if (!createdUser) {
     throw new ApiError(400, "User not created. Try again ...");
   }
+
+  createdUser.lastSeen = new Date();
+  createdUser.activityStatus = ActivityStatus.ACTIVE;
+  await createdUser.save();
 
   const appToken = signToken({
     id: createdUser._id,

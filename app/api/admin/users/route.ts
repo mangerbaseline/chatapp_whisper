@@ -36,6 +36,8 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     address: true,
     createdAt: true,
     isActive: true,
+    lastSeen: true,
+    activityStatus: true,
   });
 
   if (!users) {

@@ -15,6 +15,11 @@ export const registerSchema = z
       error: "Invalid date format.",
     }),
     address: z.string({ error: "Address is required." }),
+    mobileNo: z
+      .string()
+      .regex(/^[+]?[0-9\s\-().]{7,15}$/, "Please enter a valid mobile number.")
+      .optional()
+      .or(z.literal("")),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
@@ -56,4 +61,9 @@ export const updateSchema = z.object({
   address: z
     .string({ error: "Address is required." })
     .min(1, "Address must be atleast 10 char long."),
+  mobileNo: z
+    .string()
+    .regex(/^[+]?[0-9\s\-().]{7,15}$/, "Please enter a valid mobile number.")
+    .optional()
+    .or(z.literal("")),
 });

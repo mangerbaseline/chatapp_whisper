@@ -38,6 +38,7 @@ export default function Profile() {
     lastName: "",
     address: "",
     email: "",
+    mobileNo: "",
     dateOfBirth: undefined as Date | undefined,
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export default function Profile() {
         lastName: user.lastName ?? "",
         address: user.address ?? "",
         email: user.email ?? "",
+        mobileNo: user.mobileNo ?? "",
         dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : undefined,
       });
     }
@@ -62,6 +64,7 @@ export default function Profile() {
 
     const payload = {
       ...formData,
+      mobileNo: formData.mobileNo || undefined,
       dateOfBirth: formData.dateOfBirth
         ? formData.dateOfBirth.toISOString()
         : "",
@@ -253,6 +256,26 @@ export default function Profile() {
                 setFormData({ ...formData, dateOfBirth: date })
               }
             />
+          </div>
+          <div className="space-y-2 mt-3">
+            <Label htmlFor="mobileNo" className="text-foreground">
+              Mobile Number
+            </Label>
+            <Input
+              id="mobileNo"
+              type="tel"
+              value={formData.mobileNo}
+              onChange={(e) =>
+                setFormData({ ...formData, mobileNo: e.target.value })
+              }
+              placeholder="e.g. +1 234 567 8900"
+              className="bg-muted/50 border-border"
+            />
+            {errors.mobileNo && (
+              <p className="text-destructive text-xs mt-1">
+                {errors.mobileNo[0]}
+              </p>
+            )}
           </div>
           <div className="space-y-2 mt-3">
             <Label htmlFor="address" className="text-foreground">

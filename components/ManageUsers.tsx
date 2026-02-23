@@ -30,7 +30,30 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Trash2, CheckCircle, XCircle, Loader2, Clock } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return date.toLocaleDateString();
+}
 
 export default function ManageUsers() {
   const dispatch = useAppDispatch();
@@ -104,6 +127,8 @@ export default function ManageUsers() {
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Activity</TableHead>
+            <TableHead>Last Seen</TableHead>
             <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -127,6 +152,43 @@ export default function ManageUsers() {
                 >
                   {user.isActive ? "Active" : "Inactive"}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge
+                        variant="outline"
+                        className={
+                          user.activityStatus === "active"
+                            ? "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
+                            : user.activityStatus === "idle"
+                              ? "border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30"
+                              : "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30"
+                        }
+                      >
+                        <Clock className="h-3 w-3 mr-1" />
+                        {user.activityStatus === "active"
+                          ? "Active"
+                          : user.activityStatus === "idle"
+                            ? "Idle"
+                            : "Inactive"}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Auto-tracked based on login activity</p>
+                      <p className="text-xs">
+                        Active: within 3 days • Idle: 3-5 days • Inactive: 5+
+                        days
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {user.lastSeen
+                  ? formatTimeAgo(new Date(user.lastSeen))
+                  : "Never"}
               </TableCell>
               <TableCell>
                 {new Date(user.createdAt).toLocaleDateString()}

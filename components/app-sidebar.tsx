@@ -24,10 +24,6 @@ const nav = {
       url: "/dashboard",
     },
     {
-      title: "Analytics",
-      url: "/dashboard/analytics",
-    },
-    {
       title: "Create User",
       url: "/dashboard/create-user",
     },

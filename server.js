@@ -61,10 +61,40 @@ app.prepare().then(() => {
 
   const userSockets = new Map();
 
-  io.on("connection", (socket) => {
+  function getUserModel() {
+    const mongoose = require("mongoose");
+    if (mongoose.models.User) return mongoose.models.User;
+    const UserSchema = new mongoose.Schema(
+      {
+        lastSeen: { type: Date, default: Date.now },
+        activityStatus: {
+          type: String,
+          enum: ["active", "idle", "inactive"],
+          default: "active",
+        },
+      },
+      { timestamps: true, strict: false },
+    );
+    return mongoose.model("User", UserSchema);
+  }
+
+  io.on("connection", async (socket) => {
     console.log(`User connected: ${socket.userId} (${socket.id})`);
 
     userSockets.set(socket.userId, socket.id);
+
+    try {
+      const mongoose = require("mongoose");
+      if (mongoose.connection.readyState === 1) {
+        const UserModel = getUserModel();
+        await UserModel.findByIdAndUpdate(socket.userId, {
+          lastSeen: new Date(),
+          activityStatus: "active",
+        });
+      }
+    } catch (err) {
+      console.error("[lastSeen update error]", err);
+    }
 
     const onlineUserIds = Array.from(userSockets.keys());
     socket.emit("online_users_list", { userIds: onlineUserIds });
@@ -251,21 +281,6 @@ app.prepare().then(() => {
         }
       }
 
-      if (!mongoose.models.User) {
-        mongoose.model(
-          "User",
-          new mongoose.Schema(
-            {
-              firstName: String,
-              lastName: String,
-              email: String,
-              image: String,
-            },
-            { strict: false },
-          ),
-        );
-      }
-
       const EventModel =
         mongoose.models.Event ||
         mongoose.model(
@@ -351,6 +366,60 @@ app.prepare().then(() => {
 
   eventCheckInterval = setInterval(checkUpcomingEvents, 60 * 1000);
 
+  // ─── Activity Status Checker (runs every 24 hours) ───
+  async function updateActivityStatuses() {
+    try {
+      const mongoose = require("mongoose");
+      if (mongoose.connection.readyState !== 1) {
+        if (process.env.MONGODB_URI) {
+          await mongoose.connect(process.env.MONGODB_URI);
+        } else {
+          return;
+        }
+      }
+
+      const UserModel = getUserModel();
+
+      const now = new Date();
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+
+      const inactiveResult = await UserModel.updateMany(
+        {
+          lastSeen: { $lt: fiveDaysAgo },
+          activityStatus: { $ne: "inactive" },
+        },
+        { $set: { activityStatus: "inactive" } },
+      );
+
+      const idleResult = await UserModel.updateMany(
+        {
+          lastSeen: { $gte: fiveDaysAgo, $lt: threeDaysAgo },
+          activityStatus: { $ne: "idle" },
+        },
+        { $set: { activityStatus: "idle" } },
+      );
+      const activeResult = await UserModel.updateMany(
+        {
+          lastSeen: { $gte: threeDaysAgo },
+          activityStatus: { $ne: "active" },
+        },
+        { $set: { activityStatus: "active" } },
+      );
+
+      console.log(
+        `[Activity Status Check] Updated: ${inactiveResult.modifiedCount} inactive, ${idleResult.modifiedCount} idle, ${activeResult.modifiedCount} active`,
+      );
+    } catch (err) {
+      console.error("[Activity Status Check Error]", err);
+    }
+  }
+
+  const activityCheckInterval = setInterval(
+    updateActivityStatuses,
+    24 * 60 * 60 * 1000,
+  );
+
   const mongoose = require("mongoose");
   if (process.env.MONGODB_URI && mongoose.connection.readyState !== 1) {
     mongoose
@@ -358,10 +427,12 @@ app.prepare().then(() => {
       .then(() => {
         console.log("🔌 MongoDB connected in server.js");
         checkUpcomingEvents();
+        updateActivityStatuses();
       })
       .catch((err) => console.error("[server.js] MongoDB connect error:", err));
   } else {
     checkUpcomingEvents();
+    updateActivityStatuses();
   }
 
   httpServer
@@ -377,6 +448,7 @@ app.prepare().then(() => {
   process.on("SIGTERM", () => {
     console.log("SIGTERM signal received: closing HTTP server");
     clearInterval(eventCheckInterval);
+    clearInterval(activityCheckInterval);
     httpServer.close(() => {
       console.log("HTTP server closed");
       process.exit(0);

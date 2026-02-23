@@ -1,5 +1,11 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export enum ActivityStatus {
+  ACTIVE = "active",
+  IDLE = "idle",
+  INACTIVE = "inactive",
+}
+
 export enum UserRole {
   USER = "USER",
   ADMIN = "ADMIN",
@@ -13,6 +19,7 @@ export interface IUser extends Document {
   lastName?: string;
   dateOfBirth?: Date;
   address?: string;
+  mobileNo?: string;
   otp?: string;
   otpExpiry?: Date;
   resetPasswordToken?: string;
@@ -22,6 +29,8 @@ export interface IUser extends Document {
   githubId?: string;
   image?: string;
   isActive: boolean;
+  lastSeen: Date;
+  activityStatus: ActivityStatus;
   connections: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -57,6 +66,10 @@ const UserSchema = new Schema<IUser>(
     },
     address: {
       type: String,
+    },
+    mobileNo: {
+      type: String,
+      trim: true,
     },
     otp: {
       type: String,
@@ -95,6 +108,15 @@ const UserSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
+    activityStatus: {
+      type: String,
+      enum: Object.values(ActivityStatus),
+      default: ActivityStatus.ACTIVE,
     },
   },
   {

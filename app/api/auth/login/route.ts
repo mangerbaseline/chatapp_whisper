@@ -1,7 +1,7 @@
 import { signToken } from "@/lib/auth";
 import dbConnect from "@/lib/dbConnect";
 import { comparePassword } from "@/lib/hash";
-import User from "@/models/User";
+import User, { ActivityStatus } from "@/models/User";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
@@ -29,7 +29,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw new ApiError(404, "User Not Found.");
   }
 
-  if (!user.isActive) {
+  if (user.isActive === false) {
     throw new ApiError(
       403,
       "Your account is inactive. Please contact support.",
@@ -41,6 +41,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   if (!comparedPassword) {
     throw new ApiError(401, "Invalid email or password.");
   }
+
+  user.lastSeen = new Date();
+  user.activityStatus = ActivityStatus.ACTIVE;
+  await user.save();
 
   const token = signToken({
     id: user._id,
