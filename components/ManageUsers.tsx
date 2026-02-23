@@ -128,8 +128,6 @@ export default function ManageUsers() {
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Activity</TableHead>
-            <TableHead>Streak</TableHead>
-            <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -181,12 +179,6 @@ export default function ManageUsers() {
                   </Tooltip>
                 </TooltipProvider>
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {user.lastSeen
-                  ? formatTimeAgo(new Date(user.lastSeen))
-                  : "Never"}
-              </TableCell>
-              <TableCell>{user.consecutiveLoginDays}</TableCell>
               <TableCell className="text-right space-x-2">
                 <Button
                   size="sm"
