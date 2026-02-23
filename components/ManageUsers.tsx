@@ -128,7 +128,7 @@ export default function ManageUsers() {
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Activity</TableHead>
-            <TableHead>Last Seen</TableHead>
+            <TableHead>Streak</TableHead>
             <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -186,9 +186,7 @@ export default function ManageUsers() {
                   ? formatTimeAgo(new Date(user.lastSeen))
                   : "Never"}
               </TableCell>
-              <TableCell>
-                {new Date(user.createdAt).toLocaleDateString()}
-              </TableCell>
+              <TableCell>{user.consecutiveLoginDays}</TableCell>
               <TableCell className="text-right space-x-2">
                 <Button
                   size="sm"
