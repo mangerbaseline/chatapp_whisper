@@ -36,8 +36,8 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
 
   const { url } = await saveFile(file);
 
-  user.image = url;
-  await user.save();
+  await User.findByIdAndUpdate(userId, { $set: { image: url } });
+  console.log("[profile-image] Updated user image URL in DB:", url);
 
   return apiSuccess(200, { image: url }, "Profile image updated successfully");
 });
