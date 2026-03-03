@@ -7,11 +7,8 @@ import {
   fetchBalance,
   fetchPlans,
   fetchHistory,
-  fetchConnectStatus,
   createCheckoutSession,
   verifyPurchase,
-  redeemTokens,
-  createConnectLink,
   clearWalletState,
 } from "@/redux/features/wallet/walletSlice";
 import {
@@ -22,7 +19,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,11 +30,6 @@ import {
   ArrowDownToLine,
   History,
   Loader2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ExternalLink,
-  Wallet as WalletIcon,
 } from "lucide-react";
 
 export default function Wallet() {
@@ -50,20 +41,17 @@ export default function Wallet() {
     transactions,
     totalPages,
     currentPage,
-    connectStatus,
     isLoading,
     error,
     successMessage,
   } = useAppSelector((state) => state.wallet);
 
-  const [redeemAmount, setRedeemAmount] = useState("");
   const [activeTab, setActiveTab] = useState("buy");
 
   useEffect(() => {
     dispatch(fetchBalance());
     dispatch(fetchPlans());
     dispatch(fetchHistory({ page: 1 }));
-    dispatch(fetchConnectStatus());
   }, [dispatch]);
 
   useEffect(() => {
@@ -98,23 +86,6 @@ export default function Wallet() {
     }
   };
 
-  const handleRedeem = async () => {
-    if (!redeemAmount || parseInt(redeemAmount) <= 0) {
-      toast.error("Enter a valid amount.");
-      return;
-    }
-    await dispatch(redeemTokens({ amount: parseInt(redeemAmount) })).unwrap();
-    setRedeemAmount("");
-    dispatch(fetchHistory({ page: 1 }));
-  };
-
-  const handleConnectStripe = async () => {
-    const result = await dispatch(createConnectLink()).unwrap();
-    if (result?.url) {
-      window.location.href = result.url;
-    }
-  };
-
   const formatCurrency = (amount: number, currency: string = "usd") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -130,8 +101,6 @@ export default function Wallet() {
         return <Send className="h-4 w-4 text-red-500" />;
       case "transfer_received":
         return <ArrowDownToLine className="h-4 w-4 text-green-500" />;
-      case "redemption":
-        return <WalletIcon className="h-4 w-4 text-amber-500" />;
       default:
         return <Coins className="h-4 w-4" />;
     }
@@ -145,8 +114,6 @@ export default function Wallet() {
         return "Sent";
       case "transfer_received":
         return "Received";
-      case "redemption":
-        return "Redeemed";
       default:
         return type;
     }
@@ -165,41 +132,13 @@ export default function Wallet() {
             {(balance ?? 0).toLocaleString()}
             <span className="text-lg text-muted-foreground ml-2">tokens</span>
           </div>
-          {connectStatus && (
-            <div className="mt-3">
-              {connectStatus.connected && connectStatus.payoutsEnabled ? (
-                <Badge
-                  variant="outline"
-                  className="border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30"
-                >
-                  <CheckCircle className="h-3 w-3 mr-1" /> Stripe Connected
-                </Badge>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleConnectStripe}
-                  disabled={isLoading}
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  {connectStatus.connected
-                    ? "Complete Stripe Setup"
-                    : "Link Bank Account"}
-                </Button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 w-full">
+        <TabsList className="grid grid-cols-2 w-full">
           <TabsTrigger value="buy" className="cursor-pointer">
             <CreditCard className="h-4 w-4 mr-1.5 hidden sm:inline" /> Buy
-          </TabsTrigger>
-          <TabsTrigger value="redeem" className="cursor-pointer">
-            <ArrowDownToLine className="h-4 w-4 mr-1.5 hidden sm:inline" />{" "}
-            Redeem
           </TabsTrigger>
           <TabsTrigger value="history" className="cursor-pointer">
             <History className="h-4 w-4 mr-1.5 hidden sm:inline" /> History
@@ -266,68 +205,6 @@ export default function Wallet() {
           )}
         </TabsContent>
 
-        <TabsContent value="redeem" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <ArrowDownToLine className="h-4 w-4 text-primary" /> Redeem
-                Tokens
-              </CardTitle>
-              <CardDescription>
-                Convert tokens back to money. Requires a linked Stripe account.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {connectStatus && !connectStatus.connected ? (
-                <div className="text-center py-4 space-y-3">
-                  <p className="text-muted-foreground">
-                    Link your bank account via Stripe to enable redemptions.
-                  </p>
-                  <Button onClick={handleConnectStripe} disabled={isLoading}>
-                    <ExternalLink className="h-4 w-4 mr-2" /> Link Bank Account
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Tokens to Redeem
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="Enter token amount"
-                      value={redeemAmount}
-                      onChange={(e) => setRedeemAmount(e.target.value)}
-                      min={1}
-                      max={balance}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Available: {(balance ?? 0).toLocaleString()} tokens
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleRedeem}
-                    disabled={isLoading || !redeemAmount}
-                    className="w-full cursor-pointer"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <ArrowDownToLine className="h-4 w-4 mr-2" /> Request
-                        Redemption
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Redemption requests are reviewed by admin before payout.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="history" className="space-y-4 mt-4">
           {isLoading && transactions.length === 0 ? (
             <div className="space-y-3">
@@ -374,40 +251,14 @@ export default function Wallet() {
                     <div className="text-right">
                       <p
                         className={`text-sm font-semibold ${
-                          tx.type === "transfer_sent" ||
-                          tx.type === "redemption"
+                          tx.type === "transfer_sent"
                             ? "text-red-500"
                             : "text-green-500"
                         }`}
                       >
-                        {tx.type === "transfer_sent" || tx.type === "redemption"
-                          ? "-"
-                          : "+"}
+                        {tx.type === "transfer_sent" ? "-" : "+"}
                         {tx.amount}
                       </p>
-                      {tx.type === "redemption" && tx.redemptionStatus && (
-                        <Badge
-                          variant="outline"
-                          className={
-                            tx.redemptionStatus === "approved"
-                              ? "border-green-500 text-green-600 text-[10px]"
-                              : tx.redemptionStatus === "rejected"
-                                ? "border-red-500 text-red-600 text-[10px]"
-                                : "border-amber-500 text-amber-600 text-[10px]"
-                          }
-                        >
-                          {tx.redemptionStatus === "approved" && (
-                            <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
-                          )}
-                          {tx.redemptionStatus === "rejected" && (
-                            <XCircle className="h-2.5 w-2.5 mr-0.5" />
-                          )}
-                          {tx.redemptionStatus === "pending" && (
-                            <Clock className="h-2.5 w-2.5 mr-0.5" />
-                          )}
-                          {tx.redemptionStatus}
-                        </Badge>
-                      )}
                     </div>
                   </CardContent>
                 </Card>

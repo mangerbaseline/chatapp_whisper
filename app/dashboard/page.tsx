@@ -47,6 +47,9 @@ import {
   TrendingUp,
   Activity,
   Shield,
+  DollarSign,
+  Coins,
+  ArrowLeftRight,
 } from "lucide-react";
 
 const registrationChartConfig = {
@@ -78,6 +81,13 @@ const statusChartConfig = {
   },
 } satisfies ChartConfig;
 
+const revenueChartConfig = {
+  revenue: {
+    label: "Revenue",
+    color: "var(--color-chart-2)",
+  },
+} satisfies ChartConfig;
+
 interface DashboardData {
   totalUsers: number;
   activeUsers: number;
@@ -101,6 +111,10 @@ interface DashboardData {
     createdAt: string;
     provider?: string;
   }[];
+  totalRevenue: number;
+  totalTokensSold: number;
+  totalTransactions: number;
+  monthlyRevenue: { month: string; year: number; revenue: number }[];
 }
 
 function formatTimeAgo(date: Date): string {
@@ -235,6 +249,33 @@ export default function DashboardPage() {
         />
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          title="Total Revenue"
+          value={data.totalRevenue}
+          description="Lifetime purchase revenue (cents)"
+          icon={DollarSign}
+          accentClass="bg-teal-500"
+          delay={400}
+        />
+        <StatCard
+          title="Tokens Sold"
+          value={data.totalTokensSold}
+          description="Total tokens purchased"
+          icon={Coins}
+          accentClass="bg-violet-500"
+          delay={500}
+        />
+        <StatCard
+          title="Transactions"
+          value={data.totalTransactions}
+          description="All token transactions"
+          icon={ArrowLeftRight}
+          accentClass="bg-blue-500"
+          delay={600}
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
         <Card
           className="lg:col-span-4 opacity-0 animate-fade-in"
@@ -341,6 +382,51 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+        <Card
+          className="lg:col-span-4 opacity-0 animate-fade-in"
+          style={{ animationDelay: "350ms" }}
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  Monthly Revenue
+                </CardTitle>
+                <CardDescription>Last 6 months</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={revenueChartConfig} className="h-65 w-full">
+              <BarChart
+                data={data.monthlyRevenue}
+                margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12 }}
+                  allowDecimals={false}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="revenue"
+                  fill="var(--color-chart-2)"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={48}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
         <Card
           className="lg:col-span-3 opacity-0 animate-fade-in"
           style={{ animationDelay: "400ms" }}

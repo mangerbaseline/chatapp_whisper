@@ -28,10 +28,6 @@ const nav = {
       url: "/dashboard/plans",
     },
     {
-      title: "Redemptions",
-      url: "/dashboard/redemptions",
-    },
-    {
       title: "Create User",
       url: "/dashboard/create-user",
     },
@@ -41,7 +37,7 @@ const nav = {
     },
     {
       title: "Settings",
-      url: "/settings",
+      url: "/dashboard/settings",
     },
   ],
 };

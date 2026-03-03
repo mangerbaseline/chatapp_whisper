@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+import TokenTransaction from "@/models/TokenTransaction";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
@@ -94,6 +95,50 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     ([name, value]) => ({ name, value }),
   );
 
+  const revenueAgg = await TokenTransaction.aggregate([
+    { $match: { type: "purchase", amountMoney: { $gt: 0 } } },
+    { $group: { _id: null, total: { $sum: "$amountMoney" } } },
+  ]);
+  const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].total : 0;
+
+  const circulationAgg = await TokenTransaction.aggregate([
+    { $match: { type: "purchase" } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const totalTokensSold =
+    circulationAgg.length > 0 ? circulationAgg[0].total : 0;
+
+  const totalTransactions = await TokenTransaction.countDocuments();
+
+  const monthlyRevenue = [];
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth() - i + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+    const agg = await TokenTransaction.aggregate([
+      {
+        $match: {
+          type: "purchase",
+          amountMoney: { $gt: 0 },
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      { $group: { _id: null, revenue: { $sum: "$amountMoney" } } },
+    ]);
+    monthlyRevenue.push({
+      month: start.toLocaleString("default", { month: "short" }),
+      year: start.getFullYear(),
+      revenue: agg.length > 0 ? agg[0].revenue : 0,
+    });
+  }
+
   return apiSuccess(
     200,
     {
@@ -114,6 +159,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       ],
       providerDistribution,
       recentUsers,
+      totalRevenue,
+      totalTokensSold,
+      totalTransactions,
+      monthlyRevenue,
     },
     "Dashboard data fetched successfully.",
   );

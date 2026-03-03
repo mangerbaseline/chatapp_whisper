@@ -11,13 +11,13 @@ import {
   Download,
   PhoneCall,
   Video,
-  Coins,
+  Wallet,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { initiateCall } from "@/redux/features/chat/callSlice";
-import SendTokensModal from "./SendTokensModal";
+import { fetchBalance } from "@/redux/features/wallet/walletSlice";
 import {
   fetchMessages,
   fetchConversationDetails,
@@ -25,6 +25,7 @@ import {
   addMessage,
 } from "@/redux/features/chat/chatSlice";
 import type { Attachment } from "@/redux/features/chat/chatSlice";
+import Link from "next/link";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -42,6 +43,11 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
   const { socket, isConnected, onlineUsers } = useSocket();
   const currentUser = useAppSelector((state) => state.auth.user);
+  const balance = useAppSelector((state) => state.wallet.balance);
+
+  useEffect(() => {
+    dispatch(fetchBalance());
+  }, [dispatch]);
 
   useEffect(() => {
     notificationSoundRef.current = new Audio("/notification.wav");
@@ -235,18 +241,18 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
         </div>
         {!details.isGroup && (
           <div className="flex items-center gap-1">
-            <SendTokensModal
-              recipientId={otherUser?._id || ""}
-              recipientName={details.name || "User"}
-            >
+            <Link href="/wallet">
               <Button
                 variant="ghost"
-                size="icon"
-                className="rounded-full h-9 w-9 transition-colors text-primary hover:bg-primary/10"
+                size="sm"
+                className="rounded-full h-9 px-3 transition-colors text-primary hover:bg-primary/10 gap-1.5"
               >
-                <Coins className="h-5 w-5" />
+                <Wallet className="h-4 w-4" />
+                <span className="text-xs font-semibold">
+                  {(balance ?? 0).toLocaleString()}
+                </span>
               </Button>
-            </SendTokensModal>
+            </Link>
             <Button
               variant="ghost"
               size="icon"
@@ -437,6 +443,8 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
           conversationId={conversationId}
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
+          recipientId={otherUser?._id}
+          recipientName={details.name || "User"}
         />
       </div>
     </div>

@@ -51,6 +51,16 @@ export async function proxy(req: NextRequest) {
     }
   }
 
+  if (
+    user &&
+    user.role === "ADMIN" &&
+    !pathname.startsWith("/dashboard") &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/auth")
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
   const isPublicPage =
     pathname.startsWith("/auth/sign-in") ||
     pathname.startsWith("/auth/sign-up");

@@ -30,7 +30,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, CheckCircle, XCircle, Loader2, Clock } from "lucide-react";
+import {
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Clock,
+  Eye,
+} from "lucide-react";
+import Link from "next/link";
 import {
   Tooltip,
   TooltipContent,
@@ -180,6 +188,16 @@ export default function ManageUsers() {
                 </TooltipProvider>
               </TableCell>
               <TableCell className="text-right space-x-2">
+                <Link href={`/dashboard/admin-users/${user._id}`}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="cursor-pointer mr-2"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                </Link>
                 <Button
                   size="sm"
                   variant={user.isActive ? "outline" : "default"}

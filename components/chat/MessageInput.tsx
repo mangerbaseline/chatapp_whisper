@@ -3,9 +3,19 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Paperclip, X, File, Film, Smile } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  Paperclip,
+  X,
+  File,
+  Film,
+  Smile,
+  Coins,
+} from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { useTheme } from "next-themes";
+import SendTokensModal from "./SendTokensModal";
 import {
   Popover,
   PopoverContent,
@@ -16,12 +26,16 @@ interface MessageInputProps {
   conversationId: string;
   onSendMessage: (text: string, attachments?: any[]) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
+  recipientId?: string;
+  recipientName?: string;
 }
 
 export default function MessageInput({
   conversationId,
   onSendMessage,
   onTyping,
+  recipientId,
+  recipientName,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -218,6 +232,22 @@ export default function MessageInput({
               />
             </PopoverContent>
           </Popover>
+          {recipientId && (
+            <SendTokensModal
+              recipientId={recipientId}
+              recipientName={recipientName || "User"}
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="mb-1 h-9 w-9 shrink-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                disabled={isLoading}
+              >
+                <Coins className="h-4 w-4" />
+              </Button>
+            </SendTokensModal>
+          )}
           <Textarea
             value={message}
             onChange={handleChange}

@@ -13,7 +13,7 @@ interface Plan {
 
 interface Transaction {
   _id: string;
-  type: "purchase" | "transfer_sent" | "transfer_received" | "redemption";
+  type: "purchase" | "transfer_sent" | "transfer_received";
   amount: number;
   balanceAfter: number;
   amountMoney?: number;
@@ -27,15 +27,7 @@ interface Transaction {
   };
   toUser?: { _id: string; firstName: string; lastName: string; email: string };
   note?: string;
-  redemptionStatus?: "pending" | "approved" | "rejected";
   createdAt: string;
-}
-
-interface ConnectStatus {
-  connected: boolean;
-  chargesEnabled?: boolean;
-  payoutsEnabled?: boolean;
-  detailsSubmitted?: boolean;
 }
 
 interface WalletState {
@@ -45,7 +37,6 @@ interface WalletState {
   totalTransactions: number;
   currentPage: number;
   totalPages: number;
-  connectStatus: ConnectStatus | null;
   isLoading: boolean;
   error: string | null;
   successMessage: string | null;
@@ -62,7 +53,6 @@ const initialState: WalletState = {
   totalTransactions: 0,
   currentPage: 1,
   totalPages: 1,
-  connectStatus: null,
   isLoading: false,
   error: null,
   successMessage: null,
@@ -143,21 +133,6 @@ export const transferTokens = createAsyncThunk<
   }
 });
 
-export const redeemTokens = createAsyncThunk<
-  { balance: number },
-  { amount: number },
-  { rejectValue: ApiError }
->("wallet/redeemTokens", async (data, { rejectWithValue }) => {
-  try {
-    const res = await axios.post("/api/tokens/redeem", data);
-    return res.data.data;
-  } catch (err: any) {
-    return rejectWithValue({
-      message: err.response?.data?.message || "Redemption failed",
-    });
-  }
-});
-
 export const fetchHistory = createAsyncThunk<
   {
     transactions: Transaction[];
@@ -182,36 +157,6 @@ export const fetchHistory = createAsyncThunk<
     }
   },
 );
-
-export const fetchConnectStatus = createAsyncThunk<
-  ConnectStatus,
-  void,
-  { rejectValue: ApiError }
->("wallet/fetchConnectStatus", async (_, { rejectWithValue }) => {
-  try {
-    const res = await axios.get("/api/tokens/connect");
-    return res.data.data;
-  } catch (err: any) {
-    return rejectWithValue({
-      message: err.response?.data?.message || "Failed to fetch connect status",
-    });
-  }
-});
-
-export const createConnectLink = createAsyncThunk<
-  { url: string },
-  void,
-  { rejectValue: ApiError }
->("wallet/createConnectLink", async (_, { rejectWithValue }) => {
-  try {
-    const res = await axios.post("/api/tokens/connect");
-    return res.data.data;
-  } catch (err: any) {
-    return rejectWithValue({
-      message: err.response?.data?.message || "Failed to create connect link",
-    });
-  }
-});
 
 const walletSlice = createSlice({
   name: "wallet",
@@ -272,20 +217,6 @@ const walletSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload?.message || null;
       })
-      // redeemTokens
-      .addCase(redeemTokens.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(redeemTokens.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.balance = action.payload.balance;
-        state.successMessage = "Redemption request submitted!";
-      })
-      .addCase(redeemTokens.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload?.message || null;
-      })
       // fetchHistory
       .addCase(fetchHistory.pending, (state) => {
         state.isLoading = true;
@@ -298,21 +229,6 @@ const walletSlice = createSlice({
         state.totalPages = action.payload.totalPages;
       })
       .addCase(fetchHistory.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload?.message || null;
-      })
-      // connectStatus
-      .addCase(fetchConnectStatus.fulfilled, (state, action) => {
-        state.connectStatus = action.payload;
-      })
-      // createConnectLink
-      .addCase(createConnectLink.pending, (state) => {
-        state.isLoading = true;
-      })
-      .addCase(createConnectLink.fulfilled, (state) => {
-        state.isLoading = false;
-      })
-      .addCase(createConnectLink.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.message || null;
       });

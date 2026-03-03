@@ -3,10 +3,7 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 export type TransactionType =
   | "purchase"
   | "transfer_sent"
-  | "transfer_received"
-  | "redemption";
-
-export type RedemptionStatus = "pending" | "approved" | "rejected";
+  | "transfer_received";
 
 export interface ITokenTransaction extends Document {
   user: mongoose.Types.ObjectId;
@@ -23,10 +20,6 @@ export interface ITokenTransaction extends Document {
   fromUser?: mongoose.Types.ObjectId;
   toUser?: mongoose.Types.ObjectId;
   note?: string;
-  // Redemption fields
-  redemptionStatus?: RedemptionStatus;
-  stripeTransferId?: string;
-  adminNote?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,7 +34,7 @@ const TokenTransactionSchema = new Schema<ITokenTransaction>(
     },
     type: {
       type: String,
-      enum: ["purchase", "transfer_sent", "transfer_received", "redemption"],
+      enum: ["purchase", "transfer_sent", "transfer_received"],
       required: true,
     },
     amount: {
@@ -78,17 +71,6 @@ const TokenTransactionSchema = new Schema<ITokenTransaction>(
       ref: "User",
     },
     note: {
-      type: String,
-      trim: true,
-    },
-    redemptionStatus: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-    },
-    stripeTransferId: {
-      type: String,
-    },
-    adminNote: {
       type: String,
       trim: true,
     },
