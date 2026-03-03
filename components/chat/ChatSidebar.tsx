@@ -12,7 +12,15 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
-import { Settings, Search, Link2, X, Users, CalendarDays } from "lucide-react";
+import {
+  Settings,
+  Search,
+  Link2,
+  X,
+  Users,
+  CalendarDays,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import ConversationList from "@/components/chat/ConversationList";
 import UserSearchDialog from "@/components/chat/UserSearchDialog";
@@ -147,6 +155,16 @@ export function ChatSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <div className="flex items-center gap-1">
             <ModeToggle />
             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/wallet">
+                    <div className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer text-muted-foreground">
+                      <Wallet className="h-4 w-4" />
+                    </div>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>Wallet</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link href="/events">

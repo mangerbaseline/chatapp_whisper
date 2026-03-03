@@ -24,6 +24,14 @@ const nav = {
       url: "/dashboard",
     },
     {
+      title: "Manage Plans",
+      url: "/dashboard/plans",
+    },
+    {
+      title: "Redemptions",
+      url: "/dashboard/redemptions",
+    },
+    {
       title: "Create User",
       url: "/dashboard/create-user",
     },

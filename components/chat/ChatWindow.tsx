@@ -5,11 +5,19 @@ import { useSocket } from "@/components/SocketProvider";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, FileText, Download, PhoneCall, Video } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  Download,
+  PhoneCall,
+  Video,
+  Coins,
+} from "lucide-react";
 import MessageInput from "./MessageInput";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { initiateCall } from "@/redux/features/chat/callSlice";
+import SendTokensModal from "./SendTokensModal";
 import {
   fetchMessages,
   fetchConversationDetails,
@@ -227,6 +235,18 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
         </div>
         {!details.isGroup && (
           <div className="flex items-center gap-1">
+            <SendTokensModal
+              recipientId={otherUser?._id || ""}
+              recipientName={details.name || "User"}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-9 w-9 transition-colors text-primary hover:bg-primary/10"
+              >
+                <Coins className="h-5 w-5" />
+              </Button>
+            </SendTokensModal>
             <Button
               variant="ghost"
               size="icon"
