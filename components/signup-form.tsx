@@ -110,7 +110,7 @@ export function SignupForm() {
   };
 
   return (
-    <Card className="overflow-hidden p-0 border-0 rounded-none">
+    <Card className="overflow-hidden p-0 border-0 rounded-none min-h-screen">
       <CardContent className="grid p-0 md:grid-cols-2">
         <form className="p-6 md:p-8" onSubmit={handleSubmit}>
           <FieldGroup>
@@ -310,7 +310,7 @@ export function SignupForm() {
             </FieldDescription>
           </FieldGroup>
         </form>
-        <div className="relative hidden md:block">
+        <div className="relative hidden md:block min-h-screen">
           <AuthAnimation />
         </div>
       </CardContent>

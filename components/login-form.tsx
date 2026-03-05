@@ -84,8 +84,8 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="overflow-hidden p-0 rounded-none border-0">
-      <CardContent className="grid p-0 md:grid-cols-2">
+    <Card className="overflow-hidden p-0 rounded-none border-0 min-h-screen">
+      <CardContent className="grid  p-0 md:grid-cols-2">
         <form className="p-6 md:p-8" onSubmit={handleSubmit}>
           <FieldGroup>
             <div className="flex flex-col items-center text-center">
@@ -176,7 +176,7 @@ export function LoginForm() {
           </FieldGroup>
         </form>
 
-        <div className="relative hidden md:block">
+        <div className="relative hidden md:block min-h-screen">
           <AuthAnimation />
         </div>
       </CardContent>
