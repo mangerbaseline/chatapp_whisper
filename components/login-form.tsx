@@ -86,95 +86,97 @@ export function LoginForm() {
   return (
     <Card className="overflow-hidden p-0 rounded-none border-0 min-h-screen">
       <CardContent className="grid  p-0 md:grid-cols-2">
-        <form className="p-6 md:p-8" onSubmit={handleSubmit}>
-          <FieldGroup>
-            <div className="flex flex-col items-center text-center">
-              <Link href="/" className="text-2xl font-bold">
-                <Image src="/logo.png" alt="Logo" width={150} height={150} />
-              </Link>
-              <p className="text-muted-foreground text-sm font-semibold">
-                Login to your Whispr account
-              </p>
-            </div>
-
-            <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="m@example.com"
-                required
-              />
-              <FieldDescription>
-                {errors.email && (
-                  <p className="text-destructive text-xs mt-1">
-                    {errors.email[0]}
-                  </p>
-                )}
-              </FieldDescription>
-            </Field>
-
-            <Field>
-              <div className="flex items-center">
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Link
-                  href="/forgot-password"
-                  className="ml-auto text-sm underline-offset-2 hover:underline"
-                >
-                  Forgot your password?
+        <div className="flex flex-col justify-center p-6 md:p-8">
+          <form className="mx-auto w-full max-w-md" onSubmit={handleSubmit}>
+            <FieldGroup>
+              <div className="flex flex-col items-center text-center">
+                <Link href="/" className="text-2xl font-bold">
+                  <Image src="/logo.png" alt="Logo" width={150} height={150} />
                 </Link>
+                <p className="text-muted-foreground text-sm font-semibold">
+                  Login to your Whispr account
+                </p>
               </div>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              <FieldDescription>
-                {errors.password && (
-                  <p className="text-destructive text-xs mt-1">
-                    {errors.password[0]}
-                  </p>
-                )}
+
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="m@example.com"
+                  required
+                />
+                <FieldDescription>
+                  {errors.email && (
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.email[0]}
+                    </p>
+                  )}
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <div className="flex items-center">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="ml-auto text-sm underline-offset-2 hover:underline"
+                  >
+                    Forgot your password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <FieldDescription>
+                  {errors.password && (
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.password[0]}
+                    </p>
+                  )}
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="cursor-pointer"
+                >
+                  {isLoading ? "Logging in..." : "Login"}
+                </Button>
+              </Field>
+
+              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                Or continue with
+              </FieldSeparator>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <GoogleLoginBtn />
+                <GitHubLoginBtn />
+              </div>
+
+              <FieldDescription className="text-center">
+                Don&apos;t have an account?{" "}
+                <Link href="/auth/sign-up">Sign up</Link>
               </FieldDescription>
-            </Field>
 
-            <Field>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="cursor-pointer"
-              >
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
-            </Field>
-
-            <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-              Or continue with
-            </FieldSeparator>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <GoogleLoginBtn />
-              <GitHubLoginBtn />
-            </div>
-
-            <FieldDescription className="text-center">
-              Don&apos;t have an account?{" "}
-              <Link href="/auth/sign-up">Sign up</Link>
-            </FieldDescription>
-
-            <FieldDescription className="px-6 text-center">
-              By clicking continue, you agree to our{" "}
-              <Link href="#">Terms of Service</Link> and{" "}
-              <Link href="#">Privacy Policy</Link>.
-            </FieldDescription>
-          </FieldGroup>
-        </form>
+              <FieldDescription className="px-6 text-center">
+                By clicking continue, you agree to our{" "}
+                <Link href="#">Terms of Service</Link> and{" "}
+                <Link href="#">Privacy Policy</Link>.
+              </FieldDescription>
+            </FieldGroup>
+          </form>
+        </div>
 
         <div className="relative hidden md:block min-h-screen">
           <AuthAnimation />

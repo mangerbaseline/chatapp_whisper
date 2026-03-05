@@ -67,7 +67,7 @@ export default function ManagePlans() {
     name: "",
     description: "",
     price: "",
-    currency: "usd",
+    currency: "inr",
     tokens: "",
   });
 
@@ -91,7 +91,7 @@ export default function ManagePlans() {
       name: "",
       description: "",
       price: "",
-      currency: "usd",
+      currency: "inr",
       tokens: "",
     });
     setEditingPlan(null);
@@ -107,7 +107,7 @@ export default function ManagePlans() {
     setForm({
       name: plan.name,
       description: plan.description,
-      price: plan.price.toString(),
+      price: (plan.price / 100).toString(),
       currency: plan.currency,
       tokens: plan.tokens.toString(),
     });
@@ -124,7 +124,7 @@ export default function ManagePlans() {
       const data = {
         name: form.name,
         description: form.description,
-        price: parseInt(form.price),
+        price: Math.round(parseFloat(form.price) * 100),
         currency: form.currency,
         tokens: parseInt(form.tokens),
       };
@@ -168,7 +168,7 @@ export default function ManagePlans() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = "usd") => {
+  const formatCurrency = (amount: number, currency: string = "inr") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency.toUpperCase(),
@@ -232,22 +232,27 @@ export default function ManagePlans() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Price (in cents)
-                  </label>
+                  <label className="text-sm font-medium">Price (in INR)</label>
                   <Input
                     type="number"
-                    placeholder="e.g., 500 = $5.00"
+                    placeholder="e.g., 200 = ₹200"
                     value={form.price}
-                    onChange={(e) =>
-                      setForm({ ...form, price: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm({
+                        ...form,
+                        price: val,
+                        tokens: val
+                          ? Math.floor(parseFloat(val) / 2).toString()
+                          : "",
+                      });
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Currency</label>
                   <Input
-                    placeholder="usd"
+                    placeholder="inr"
                     value={form.currency}
                     onChange={(e) =>
                       setForm({ ...form, currency: e.target.value })

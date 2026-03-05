@@ -31,6 +31,8 @@ interface ChatWindowProps {
   conversationId: string;
 }
 
+import { useSidebar } from "@/components/ui/sidebar";
+
 export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const dispatch = useAppDispatch();
   const messages = useAppSelector((state) => state.chat.messages);
@@ -44,6 +46,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const { socket, isConnected, onlineUsers } = useSocket();
   const currentUser = useAppSelector((state) => state.auth.user);
   const balance = useAppSelector((state) => state.wallet.balance);
+  const { state, isMobile } = useSidebar();
 
   useEffect(() => {
     dispatch(fetchBalance());
@@ -203,9 +206,13 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const isOnline =
     !details.isGroup && otherUser?._id && onlineUsers.has(otherUser._id);
 
+  const isTriggerVisible = isMobile || state === "collapsed";
+
   return (
     <div className="relative flex flex-col h-screen w-full bg-transparent overflow-hidden">
-      <div className="absolute top-2.5 left-4 right-4 z-20 border border-border/40 bg-background/60 backdrop-blur-md p-3 flex items-center gap-3 shadow-sm rounded-2xl transition-all duration-300 hover:bg-background/80 hover:shadow-md">
+      <div
+        className={`absolute top-2.5 right-4 z-20 border border-border/40 bg-background/60 backdrop-blur-md p-3 flex items-center gap-3 shadow-sm rounded-2xl transition-all duration-300 hover:bg-background/80 hover:shadow-md ${isTriggerVisible ? "left-14" : "left-4"}`}
+      >
         <div className="relative">
           <Avatar className="h-10 w-10 border border-border/50 shadow-sm">
             <AvatarImage src={details.image || ""} className="object-cover" />

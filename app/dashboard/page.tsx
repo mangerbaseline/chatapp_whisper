@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -47,7 +48,7 @@ import {
   TrendingUp,
   Activity,
   Shield,
-  DollarSign,
+  IndianRupee,
   Coins,
   ArrowLeftRight,
 } from "lucide-react";
@@ -137,6 +138,7 @@ function StatCard({
   icon: Icon,
   accentClass,
   delay,
+  href,
 }: {
   title: string;
   value: number;
@@ -144,10 +146,11 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
   accentClass: string;
   delay: number;
+  href?: string;
 }) {
-  return (
+  const cardContent = (
     <Card
-      className="relative overflow-hidden opacity-0 animate-fade-in group hover:shadow-lg transition-all duration-300"
+      className="relative overflow-hidden opacity-0 animate-fade-in group hover:shadow-lg transition-all duration-300 h-full"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className={`absolute inset-0 opacity-[0.04] ${accentClass}`} />
@@ -167,6 +170,16 @@ function StatCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block cursor-pointer">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 }
 
 function DashboardSkeleton() {
@@ -222,6 +235,7 @@ export default function DashboardPage() {
           icon={Users}
           accentClass="bg-primary"
           delay={0}
+          href="/dashboard/admin-users"
         />
         <StatCard
           title="Active Users"
@@ -230,6 +244,7 @@ export default function DashboardPage() {
           icon={UserCheck}
           accentClass="bg-emerald-500"
           delay={100}
+          href="/dashboard/admin-users"
         />
         <StatCard
           title="Deactivated Users"
@@ -238,6 +253,7 @@ export default function DashboardPage() {
           icon={UserX}
           accentClass="bg-red-500"
           delay={200}
+          href="/dashboard/admin-users"
         />
         <StatCard
           title="Today's Active"
@@ -246,17 +262,19 @@ export default function DashboardPage() {
           icon={Clock}
           accentClass="bg-amber-500"
           delay={300}
+          href="/dashboard/admin-users"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Revenue"
-          value={data.totalRevenue}
-          description="Lifetime purchase revenue (cents)"
-          icon={DollarSign}
+          value={data.totalRevenue / 100}
+          description="Lifetime purchase revenue"
+          icon={IndianRupee}
           accentClass="bg-teal-500"
           delay={400}
+          href="/dashboard/transactions"
         />
         <StatCard
           title="Tokens Sold"
@@ -265,6 +283,7 @@ export default function DashboardPage() {
           icon={Coins}
           accentClass="bg-violet-500"
           delay={500}
+          href="/dashboard/transactions"
         />
         <StatCard
           title="Transactions"
@@ -273,6 +292,7 @@ export default function DashboardPage() {
           icon={ArrowLeftRight}
           accentClass="bg-blue-500"
           delay={600}
+          href="/dashboard/transactions"
         />
       </div>
 
@@ -390,7 +410,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" />
+                  <IndianRupee className="h-4 w-4 text-primary" />
                   Monthly Revenue
                 </CardTitle>
                 <CardDescription>Last 6 months</CardDescription>
@@ -400,7 +420,10 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer config={revenueChartConfig} className="h-65 w-full">
               <BarChart
-                data={data.monthlyRevenue}
+                data={data.monthlyRevenue.map((item) => ({
+                  ...item,
+                  revenue: item.revenue / 100,
+                }))}
                 margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />

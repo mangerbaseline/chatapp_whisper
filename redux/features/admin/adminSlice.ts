@@ -6,6 +6,11 @@ interface AdminState {
   error: string | null;
   successMessage: string | null;
   users: any[];
+  transactions: any[];
+  transactionsTotal: number;
+  transactionsPage: number;
+  transactionsTotalPages: number;
+  isTransactionsLoading: boolean;
 }
 
 interface CreateUserPayload {
@@ -37,6 +42,11 @@ const initialState: AdminState = {
   error: null,
   successMessage: null,
   users: [],
+  transactions: [],
+  transactionsTotal: 0,
+  transactionsPage: 1,
+  transactionsTotalPages: 1,
+  isTransactionsLoading: false,
 };
 
 export const createUserByAdmin = createAsyncThunk<
@@ -112,6 +122,31 @@ export const deleteUser = createAsyncThunk<
   }
 });
 
+export const getTransactions = createAsyncThunk<
+  {
+    transactions: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  },
+  { page?: number; limit?: number },
+  { rejectValue: ApiError }
+>(
+  "admin/getTransactions",
+  async ({ page = 1, limit = 20 }, { rejectWithValue }) => {
+    try {
+      const res = await axios.get(
+        `/api/admin/transactions?page=${page}&limit=${limit}`,
+      );
+      return res.data.data;
+    } catch (err: any) {
+      return rejectWithValue({
+        message: err.response?.data?.message || "Failed to fetch transactions",
+      });
+    }
+  },
+);
+
 const adminSlice = createSlice({
   name: "admin",
   initialState,
@@ -170,6 +205,21 @@ const adminSlice = createSlice({
       })
       .addCase(deleteUser.rejected, (state, action) => {
         state.isLoading = false;
+        state.error = action.payload?.message || null;
+      })
+      .addCase(getTransactions.pending, (state) => {
+        state.isTransactionsLoading = true;
+        state.error = null;
+      })
+      .addCase(getTransactions.fulfilled, (state, action) => {
+        state.isTransactionsLoading = false;
+        state.transactions = action.payload.transactions;
+        state.transactionsTotal = action.payload.total;
+        state.transactionsPage = action.payload.page;
+        state.transactionsTotalPages = action.payload.totalPages;
+      })
+      .addCase(getTransactions.rejected, (state, action) => {
+        state.isTransactionsLoading = false;
         state.error = action.payload?.message || null;
       });
   },
