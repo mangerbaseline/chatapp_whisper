@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
-import { string } from "zod";
 
 const ticketSchema = new mongoose.Schema(
   {
     ticketId: {
-      type: string,
+      type: String,
       required: true,
       unique: true,
     },
@@ -14,11 +13,11 @@ const ticketSchema = new mongoose.Schema(
       required: true,
     },
     subject: {
-      type: string,
+      type: String,
       required: true,
     },
     status: {
-      type: string,
+      type: String,
       enum: ["open", "fulfilled"],
       default: "open",
     },
