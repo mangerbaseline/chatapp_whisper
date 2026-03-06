@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
 
     const conversations = await Conversation.find({
       participants: userId,
+      isSupportTicket: { $ne: true },
     })
       .populate("participants", "email firstName lastName image")
       .populate("lastMessage")

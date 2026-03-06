@@ -136,6 +136,7 @@ export default function ManageUsers() {
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Activity</TableHead>
+            <TableHead>Tickets</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -186,6 +187,16 @@ export default function ManageUsers() {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1 items-start">
+                  <Badge variant="outline">{user.totalTickets || 0}</Badge>
+                  <Link href={`/dashboard/admin-tickets?userId=${user._id}`}>
+                    <span className="text-xs text-primary hover:underline cursor-pointer">
+                      View Tickets
+                    </span>
+                  </Link>
+                </div>
               </TableCell>
               <TableCell className="text-right space-x-2">
                 <Link href={`/dashboard/admin-users/${user._id}`}>

@@ -18,10 +18,14 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   if (!user) throw new ApiError(404, "User not found.");
 
+  const { searchParams } = new URL(req.url);
+  const filterUserId = searchParams.get("userId");
+
   let tickets;
 
   if (user.role === UserRole.ADMIN) {
-    tickets = await Ticket.find()
+    const query = filterUserId ? { user: filterUserId } : {};
+    tickets = await Ticket.find(query)
       .populate("user", "firstName lastName email image")
       .sort({ createdAt: -1 });
   } else {
@@ -45,9 +49,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   if (!subject) throw new ApiError(400, "Subject is required.");
 
+  const admins = await User.find({ role: UserRole.ADMIN }).select("_id");
+  const adminIds = admins.map((admin) => admin._id);
+
   const conversation = await Conversation.create({
-    participants: [userId],
+    participants: [userId, ...adminIds],
     isGroup: false,
+    isSupportTicket: true,
     name: `Ticket: ${subject}`,
   });
 

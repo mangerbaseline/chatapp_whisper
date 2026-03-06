@@ -36,6 +36,7 @@ export interface Conversation {
   isGroup?: boolean;
   name?: string;
   groupAdmin?: string;
+  isSupportTicket?: boolean;
 }
 
 interface ChatState {
@@ -174,6 +175,8 @@ const chatSlice = createSlice({
       }
     },
     updateConversation: (state, action: PayloadAction<Conversation>) => {
+      if (action.payload.isSupportTicket) return;
+
       const index = state.conversations.findIndex(
         (c) => c._id === action.payload._id,
       );
@@ -193,7 +196,9 @@ const chatSlice = createSlice({
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.loading = false;
-        state.conversations = action.payload;
+        state.conversations = action.payload.filter(
+          (c: Conversation) => !c.isSupportTicket,
+        );
       })
       .addCase(fetchConversations.rejected, (state, action) => {
         state.loading = false;

@@ -26,7 +26,9 @@ export default function ConversationList({
   onSelectConversation,
 }: ConversationListProps) {
   const dispatch = useAppDispatch();
-  const conversations = useAppSelector((state) => state.chat.conversations);
+  const conversations = useAppSelector(
+    (state) => state.chat.conversations,
+  ).filter((c) => !c.isSupportTicket);
   const { socket, isConnected, onlineUsers } = useSocket();
   const currentUser = useAppSelector((state) => state.auth.user);
 

@@ -40,6 +40,10 @@ const nav = {
       url: "/dashboard/admin-users",
     },
     {
+      title: "Support Tickets",
+      url: "/dashboard/admin-tickets",
+    },
+    {
       title: "Settings",
       url: "/dashboard/settings",
     },

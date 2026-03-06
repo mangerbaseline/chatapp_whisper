@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+import Ticket from "@/models/Ticket";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
@@ -26,25 +27,34 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   const users = await User.find({
     role: "USER",
-  }).select({
-    _id: true,
-    email: true,
-    role: true,
-    firstName: true,
-    lastName: true,
-    dateOfBirth: true,
-    address: true,
-    createdAt: true,
-    isActive: true,
-    lastSeen: true,
-    activityStatus: true,
-    isDeactivated: true,
-    consecutiveLoginDays: true,
-  });
+  })
+    .select({
+      _id: true,
+      email: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      address: true,
+      createdAt: true,
+      isActive: true,
+      lastSeen: true,
+      activityStatus: true,
+      isDeactivated: true,
+      consecutiveLoginDays: true,
+    })
+    .lean();
 
   if (!users) {
     throw new ApiError(404, "No user found.");
   }
 
-  return apiSuccess(200, users, "Users fetched successfully.");
+  const usersWithTickets = await Promise.all(
+    users.map(async (u: any) => {
+      const totalTickets = await Ticket.countDocuments({ user: u._id });
+      return { ...u, totalTickets };
+    }),
+  );
+
+  return apiSuccess(200, usersWithTickets, "Users fetched successfully.");
 });
