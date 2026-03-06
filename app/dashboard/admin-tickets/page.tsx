@@ -6,6 +6,7 @@ import { Loader2, Eye, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import {
   Table,
@@ -28,6 +29,32 @@ interface Ticket {
     firstName: string;
     lastName: string;
     email: string;
+  };
+}
+
+interface RefundRequest {
+  _id: string;
+  status: string;
+  reason: string;
+  refundAmount: number;
+  percentageCut: number;
+  createdAt: string;
+  user: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  transaction: {
+    _id: string;
+    amount: number;
+    amountMoney: number;
+    currency: string;
+    plan: {
+      name: string;
+      price: number;
+      tokens: number;
+    };
   };
 }
 
@@ -158,27 +185,162 @@ function TicketList() {
   );
 }
 
+function RefundList() {
+  const [refunds, setRefunds] = useState<RefundRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const fetchRefunds = async () => {
+      try {
+        const res = await axios.get("/api/refund");
+        setRefunds(res.data.data);
+      } catch (error) {
+        console.error("Error fetching refunds:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchRefunds();
+  }, []);
+
+  const filteredRefunds = refunds.filter(
+    (r) =>
+      r.user?.email?.toLowerCase().includes(search.toLowerCase()) ||
+      r.reason?.toLowerCase().includes(search.toLowerCase()) ||
+      r.transaction?.plan?.name?.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const statusColor = (status: string) => {
+    if (status === "pending") return "default";
+    if (status === "approved") return "secondary";
+    return "destructive";
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="relative max-w-md">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search refund requests..."
+          className="pl-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="rounded-lg border border-border/50 overflow-hidden bg-card">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Tokens</TableHead>
+              <TableHead>Reason</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : filteredRefunds.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No refund requests found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRefunds.map((refund) => (
+                <TableRow key={refund._id} className="hover:bg-muted/50">
+                  <TableCell>
+                    {refund.user?.firstName} {refund.user?.lastName}
+                    <span className="block text-xs text-muted-foreground">
+                      {refund.user?.email}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {refund.transaction?.plan?.name || "N/A"}
+                  </TableCell>
+                  <TableCell>{refund.transaction?.amount}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {refund.reason}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(refund.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusColor(refund.status)}>
+                      {refund.status.toUpperCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/dashboard/admin-tickets/refund/${refund._id}`}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="cursor-pointer"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Review
+                      </Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminTicketsPage() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Support Tickets
+          Support & Refunds
         </h1>
         <p className="text-muted-foreground mt-2">
-          Manage and respond to user support requests.
+          Manage support tickets and refund requests.
         </p>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        }
-      >
-        <TicketList />
-      </Suspense>
+      <Tabs defaultValue="tickets" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
+          <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tickets">
+          <Suspense
+            fallback={
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            }
+          >
+            <TicketList />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="refunds">
+          <RefundList />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

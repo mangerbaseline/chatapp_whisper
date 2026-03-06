@@ -3,7 +3,8 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 export type TransactionType =
   | "purchase"
   | "transfer_sent"
-  | "transfer_received";
+  | "transfer_received"
+  | "refund";
 
 export interface ITokenTransaction extends Document {
   user: mongoose.Types.ObjectId;
@@ -34,7 +35,7 @@ const TokenTransactionSchema = new Schema<ITokenTransaction>(
     },
     type: {
       type: String,
-      enum: ["purchase", "transfer_sent", "transfer_received"],
+      enum: ["purchase", "transfer_sent", "transfer_received", "refund"],
       required: true,
     },
     amount: {
