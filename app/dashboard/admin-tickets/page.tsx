@@ -213,7 +213,7 @@ function RefundList() {
 
   const statusColor = (status: string) => {
     if (status === "pending") return "default";
-    if (status === "approved") return "secondary";
+    if (status === "initiated" || status === "refunded") return "secondary";
     return "destructive";
   };
 

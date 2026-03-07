@@ -87,18 +87,18 @@ export default function AdminRefundDetailPage() {
     if (id) fetchRefund();
   }, [id]);
 
-  const handleProcess = async (status: "approved" | "rejected") => {
+  const handleProcess = async (status: "initiated" | "rejected") => {
     setIsProcessing(true);
     try {
       const res = await axios.patch(`/api/refund/${id}`, {
         status,
-        percentageCut: status === "approved" ? percentageCut : 0,
+        percentageCut: status === "initiated" ? percentageCut : 0,
         adminNote,
       });
       setRefund(res.data.data);
       toast.success(
-        status === "approved"
-          ? "Refund approved successfully"
+        status === "initiated"
+          ? "Refund initiated successfully"
           : "Refund rejected",
       );
     } catch (error: any) {
@@ -139,7 +139,7 @@ export default function AdminRefundDetailPage() {
   const statusColor =
     refund.status === "pending"
       ? "default"
-      : refund.status === "approved"
+      : refund.status === "initiated" || refund.status === "refunded"
         ? "secondary"
         : "destructive";
 
@@ -292,7 +292,7 @@ export default function AdminRefundDetailPage() {
                 Reject
               </Button>
               <Button
-                onClick={() => handleProcess("approved")}
+                onClick={() => handleProcess("initiated")}
                 disabled={isProcessing}
                 className="gap-2 cursor-pointer"
               >
@@ -301,7 +301,7 @@ export default function AdminRefundDetailPage() {
                 ) : (
                   <CheckCircle className="h-4 w-4" />
                 )}
-                Approve Refund
+                Initiate Refund
               </Button>
             </div>
           </CardContent>
@@ -316,7 +316,27 @@ export default function AdminRefundDetailPage() {
               <span className="text-muted-foreground">Status: </span>
               <Badge variant={statusColor}>{refund.status.toUpperCase()}</Badge>
             </div>
-            {refund.status === "approved" && (
+            {refund.status === "initiated" && (
+              <>
+                <div>
+                  <span className="text-muted-foreground">Platform Cut: </span>
+                  <span className="font-medium">{refund.percentageCut}%</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">
+                    Tokens Deducted:{" "}
+                  </span>
+                  <span className="font-medium">{refund.tokensDeducted}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Refund Amount: </span>
+                  <span className="font-medium">
+                    {(refund.refundAmount / 100).toFixed(2)} {currency}
+                  </span>
+                </div>
+              </>
+            )}
+            {refund.status === "refunded" && (
               <>
                 <div>
                   <span className="text-muted-foreground">Platform Cut: </span>

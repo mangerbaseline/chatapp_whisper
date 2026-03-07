@@ -30,6 +30,8 @@ export interface IUser extends Document {
   deactivatedAt?: Date | null;
   connections: mongoose.Types.ObjectId[];
   tokenBalance: number;
+  stripeCustomerId?: string;
+  stripeAccountId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,6 +133,14 @@ const UserSchema = new Schema<IUser>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
+    stripeAccountId: {
+      type: String,
+      default: null,
     },
   },
   {

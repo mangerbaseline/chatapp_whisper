@@ -4,7 +4,7 @@ export interface IRefundRequest extends Document {
   user: mongoose.Types.ObjectId;
   transaction: mongoose.Types.ObjectId;
   reason: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "initiated" | "refunded" | "rejected";
   refundAmount: number;
   percentageCut: number;
   tokensDeducted: number;
@@ -35,7 +35,7 @@ const RefundRequestSchema = new Schema<IRefundRequest>(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "initiated", "refunded", "rejected"],
       default: "pending",
     },
     refundAmount: {

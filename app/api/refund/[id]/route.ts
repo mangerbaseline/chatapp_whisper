@@ -7,6 +7,7 @@ import { withApiHandler } from "@/utils/withApiHandler";
 import { apiSuccess } from "@/utils/api-response";
 import { ApiError } from "@/utils/api-error";
 import { sendEmail } from "@/lib/mail";
+import stripe from "@/lib/stripe";
 
 export const PATCH = withApiHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
@@ -23,8 +24,8 @@ export const PATCH = withApiHandler(
     const { id: refundId } = await params;
     const { status, percentageCut = 10, adminNote } = await req.json();
 
-    if (!status || !["approved", "rejected"].includes(status)) {
-      throw new ApiError(400, "Valid status (approved/rejected) is required.");
+    if (!status || !["initiated", "rejected"].includes(status)) {
+      throw new ApiError(400, "Valid status (initiated/rejected) is required.");
     }
 
     const refund = await RefundRequest.findById(refundId).populate({
@@ -39,7 +40,7 @@ export const PATCH = withApiHandler(
 
     const transaction = refund.transaction as any;
 
-    if (status === "approved") {
+    if (status === "initiated") {
       const cut = Math.max(0, Math.min(100, percentageCut));
       const originalTokens = transaction.amount;
       const tokensToDeduct = originalTokens;
@@ -69,8 +70,16 @@ export const PATCH = withApiHandler(
       refund.percentageCut = cut;
       refund.tokensDeducted = tokensToDeduct;
 
-      // TODO: Actual Stripe refund via stripe.refunds.create()
-      // using transaction.stripePaymentIntentId and refundMoney
+      if (transaction.stripePaymentIntentId) {
+        await stripe.refunds.create({
+          payment_intent: transaction.stripePaymentIntentId,
+          amount: refundMoney,
+          reason: "requested_by_customer",
+          metadata: {
+            refundRequestId: refund._id.toString(),
+          },
+        });
+      }
     }
 
     refund.status = status;
@@ -82,18 +91,18 @@ export const PATCH = withApiHandler(
     const refundUser = await User.findById(refund.user);
     if (refundUser?.email) {
       const planName = transaction.plan?.name || "Token Plan";
-      if (status === "approved") {
+      if (status === "initiated") {
         const refundAmountFormatted = (refund.refundAmount / 100).toFixed(2);
         const curr = (transaction.currency || "usd").toUpperCase();
         await sendEmail({
           to: refundUser.email,
-          subject: "Your Refund Has Been Approved",
-          text: `Your refund request for ${planName} has been approved. Refund amount: ${refundAmountFormatted} ${curr} (${refund.percentageCut}% platform fee applied).`,
+          subject: "Your Refund Has Been Initiated",
+          text: `Your refund request for ${planName} has been initiated. Refund amount: ${refundAmountFormatted} ${curr} (${refund.percentageCut}% platform fee applied).`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #16a34a;">Refund Approved &#10003;</h2>
+              <h2 style="color: #16a34a;">Refund Initiated &#10003;</h2>
               <p>Hi ${refundUser.firstName || "there"},</p>
-              <p>Your refund request for <strong>${planName}</strong> has been approved.</p>
+              <p>Your refund request for <strong>${planName}</strong> has been initiated.</p>
               <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
                 <tr><td style="padding: 8px; border: 1px solid #e5e7eb;">Refund Amount</td><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">${refundAmountFormatted} ${curr}</td></tr>
                 <tr><td style="padding: 8px; border: 1px solid #e5e7eb;">Platform Fee</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${refund.percentageCut}%</td></tr>

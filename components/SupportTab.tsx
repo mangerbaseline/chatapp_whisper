@@ -187,9 +187,18 @@ export default function SupportTab() {
   };
 
   const refundStatusColor = (status: string) => {
-    if (status === "pending") return "default" as const;
-    if (status === "approved") return "secondary" as const;
-    return "destructive" as const;
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "initiated":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      case "refunded":
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      case "rejected":
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+    }
   };
 
   return (
@@ -411,7 +420,10 @@ export default function SupportTab() {
                 className="border border-border/60 bg-background/50 rounded-xl p-4 shadow-sm"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <Badge variant={refundStatusColor(refund.status)}>
+                  <Badge
+                    variant="outline"
+                    className={refundStatusColor(refund.status)}
+                  >
                     {refund.status.toUpperCase()}
                   </Badge>
                   <span className="text-xs text-muted-foreground">

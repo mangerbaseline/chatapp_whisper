@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
-  fetchBalance,
-  fetchPlans,
   fetchHistory,
   createCheckoutSession,
   verifyPurchase,
   clearWalletState,
+  fetchBalance,
+  fetchPlans,
 } from "@/redux/features/wallet/walletSlice";
 import {
   Card,
@@ -19,7 +19,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";

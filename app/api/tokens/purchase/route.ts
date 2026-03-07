@@ -24,7 +24,22 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
+  let stripeCustomerId = user.stripeCustomerId;
+
+  if (!stripeCustomerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name:
+        `${user.firstName || ""} ${user.lastName || ""}`.trim() || undefined,
+      metadata: { userId: userId.toString() },
+    });
+
+    stripeCustomerId = customer.id;
+    await User.findByIdAndUpdate(userId, { stripeCustomerId });
+  }
+
   const session = await stripe.checkout.sessions.create({
+    customer: stripeCustomerId,
     line_items: [
       {
         price_data: {
