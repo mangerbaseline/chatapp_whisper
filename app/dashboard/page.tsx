@@ -51,6 +51,8 @@ import {
   IndianRupee,
   Coins,
   ArrowLeftRight,
+  Undo2,
+  RefreshCcw,
 } from "lucide-react";
 
 const registrationChartConfig = {
@@ -87,6 +89,10 @@ const revenueChartConfig = {
     label: "Revenue",
     color: "var(--color-chart-2)",
   },
+  refunded: {
+    label: "Refunded",
+    color: "var(--color-chart-5)",
+  },
 } satisfies ChartConfig;
 
 interface DashboardData {
@@ -116,6 +122,10 @@ interface DashboardData {
   totalTokensSold: number;
   totalTransactions: number;
   monthlyRevenue: { month: string; year: number; revenue: number }[];
+  totalRefundedAmount: number;
+  totalRefundsCount: number;
+  pendingRefunds: number;
+  monthlyRefunds: { month: string; year: number; refundedAmount: number }[];
 }
 
 function formatTimeAgo(date: Date): string {
@@ -227,6 +237,62 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          title="Total Revenue"
+          value={data.totalRevenue / 100}
+          description="Lifetime purchase revenue"
+          icon={IndianRupee}
+          accentClass="bg-teal-500"
+          delay={400}
+          href="/dashboard/transactions"
+        />
+        <StatCard
+          title="Tokens Sold"
+          value={data.totalTokensSold}
+          description="Total tokens purchased"
+          icon={Coins}
+          accentClass="bg-violet-500"
+          delay={500}
+          href="/dashboard/transactions"
+        />
+        <StatCard
+          title="Transactions"
+          value={data.totalTransactions}
+          description="All token transactions"
+          icon={ArrowLeftRight}
+          accentClass="bg-blue-500"
+          delay={600}
+          href="/dashboard/transactions"
+        />
+        <StatCard
+          title="Refunded Amount"
+          value={data.totalRefundedAmount / 100}
+          description="Total amount refunded"
+          icon={Undo2}
+          accentClass="bg-rose-500"
+          delay={700}
+          href="/dashboard/admin-tickets/?tab=refunds"
+        />
+        <StatCard
+          title="Total Refunds"
+          value={data.totalRefundsCount}
+          description="Number of processed refunds"
+          icon={RefreshCcw}
+          accentClass="bg-orange-500"
+          delay={800}
+          href="/dashboard/admin-tickets/?tab=refunds"
+        />
+        <StatCard
+          title="Pending Refunds"
+          value={data.pendingRefunds}
+          description="Awaiting admin review"
+          icon={Clock}
+          accentClass="bg-yellow-500"
+          delay={900}
+          href="/dashboard/admin-tickets/?tab=refunds"
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Users"
@@ -263,36 +329,6 @@ export default function DashboardPage() {
           accentClass="bg-amber-500"
           delay={300}
           href="/dashboard/admin-users"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Revenue"
-          value={data.totalRevenue / 100}
-          description="Lifetime purchase revenue"
-          icon={IndianRupee}
-          accentClass="bg-teal-500"
-          delay={400}
-          href="/dashboard/transactions"
-        />
-        <StatCard
-          title="Tokens Sold"
-          value={data.totalTokensSold}
-          description="Total tokens purchased"
-          icon={Coins}
-          accentClass="bg-violet-500"
-          delay={500}
-          href="/dashboard/transactions"
-        />
-        <StatCard
-          title="Transactions"
-          value={data.totalTransactions}
-          description="All token transactions"
-          icon={ArrowLeftRight}
-          accentClass="bg-blue-500"
-          delay={600}
-          href="/dashboard/transactions"
         />
       </div>
 
@@ -420,10 +456,14 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer config={revenueChartConfig} className="h-65 w-full">
               <BarChart
-                data={data.monthlyRevenue.map((item) => ({
-                  ...item,
-                  revenue: item.revenue / 100,
-                }))}
+                data={data.monthlyRevenue.map((item, index) => {
+                  const refundItem = data.monthlyRefunds[index];
+                  return {
+                    ...item,
+                    revenue: item.revenue / 100,
+                    refunded: (refundItem?.refundedAmount || 0) / 100,
+                  };
+                })}
                 margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -440,11 +480,20 @@ export default function DashboardPage() {
                   allowDecimals={false}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
                 <Bar
                   dataKey="revenue"
                   fill="var(--color-chart-2)"
+                  radius={[0, 0, 0, 0]}
+                  maxBarSize={48}
+                  stackId="a"
+                />
+                <Bar
+                  dataKey="refunded"
+                  fill="var(--color-chart-5)"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={48}
+                  stackId="a"
                 />
               </BarChart>
             </ChartContainer>

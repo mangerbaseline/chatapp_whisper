@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import TokenTransaction from "@/models/TokenTransaction";
+import RefundRequest from "@/models/RefundRequest";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
@@ -110,7 +111,26 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   const totalTransactions = await TokenTransaction.countDocuments();
 
+  const refundsAgg = await RefundRequest.aggregate([
+    { $match: { status: { $in: ["refunded", "initiated"] } } },
+    {
+      $group: {
+        _id: null,
+        totalAmount: { $sum: "$refundAmount" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+  const totalRefundedAmount =
+    refundsAgg.length > 0 ? refundsAgg[0].totalAmount : 0;
+  const totalRefundsCount = refundsAgg.length > 0 ? refundsAgg[0].count : 0;
+
+  const pendingRefunds = await RefundRequest.countDocuments({
+    status: "pending",
+  });
+
   const monthlyRevenue = [];
+  const monthlyRefunds = [];
   for (let i = 5; i >= 0; i--) {
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(
@@ -136,6 +156,21 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       month: start.toLocaleString("default", { month: "short" }),
       year: start.getFullYear(),
       revenue: agg.length > 0 ? agg[0].revenue : 0,
+    });
+
+    const refundAgg = await RefundRequest.aggregate([
+      {
+        $match: {
+          status: { $in: ["refunded", "initiated"] },
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      { $group: { _id: null, refundedAmount: { $sum: "$refundAmount" } } },
+    ]);
+    monthlyRefunds.push({
+      month: start.toLocaleString("default", { month: "short" }),
+      year: start.getFullYear(),
+      refundedAmount: refundAgg.length > 0 ? refundAgg[0].refundedAmount : 0,
     });
   }
 
@@ -163,6 +198,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
       totalTokensSold,
       totalTransactions,
       monthlyRevenue,
+      totalRefundedAmount,
+      totalRefundsCount,
+      pendingRefunds,
+      monthlyRefunds,
     },
     "Dashboard data fetched successfully.",
   );
