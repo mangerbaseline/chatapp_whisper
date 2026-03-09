@@ -6,6 +6,8 @@ import User, { UserRole } from "@/models/User";
 import { withApiHandler } from "@/utils/withApiHandler";
 import { apiSuccess } from "@/utils/api-response";
 import { ApiError } from "@/utils/api-error";
+import { sendEmail } from "@/lib/mail";
+import { getRefundRequestEmailTemplate } from "@/lib/email-templates";
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   await dbConnect();
@@ -54,7 +56,8 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   if (!transactionId) throw new ApiError(400, "Transaction ID is required.");
   if (!reason || !reason.trim()) throw new ApiError(400, "Reason is required.");
 
-  const transaction = await TokenTransaction.findById(transactionId);
+  const transaction =
+    await TokenTransaction.findById(transactionId).populate("plan");
   if (!transaction) throw new ApiError(404, "Transaction not found.");
   if (transaction.user.toString() !== userId) {
     throw new ApiError(403, "This transaction does not belong to you.");
@@ -79,6 +82,21 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     transaction: transactionId,
     reason: reason.trim(),
   });
+
+  const requestUser = await User.findById(userId);
+  const planInfo: any = transaction.plan;
+  if (requestUser?.email) {
+    await sendEmail({
+      to: requestUser.email,
+      subject: "Refund Request Received",
+      text: `We have received your refund request for ${planInfo?.name || "the plan"}.`,
+      html: getRefundRequestEmailTemplate(
+        requestUser.firstName || requestUser.email.split("@")[0],
+        planInfo?.name || "the plan",
+        reason.trim(),
+      ),
+    });
+  }
 
   return apiSuccess(201, refund, "Refund request submitted successfully.");
 });

@@ -5,6 +5,8 @@ import TokenTransaction from "@/models/TokenTransaction";
 import { ApiError } from "@/utils/api-error";
 import { apiSuccess } from "@/utils/api-response";
 import { withApiHandler } from "@/utils/withApiHandler";
+import { sendEmail } from "@/lib/mail";
+import { getPlanBoughtEmailTemplate } from "@/lib/email-templates";
 import { NextRequest } from "next/server";
 
 export const POST = withApiHandler(async (req: NextRequest) => {
@@ -61,6 +63,21 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     currency: session.currency ?? undefined,
     stripeSessionId: sessionId,
     stripePaymentIntentId: session.payment_intent as string,
+  });
+
+  const planName = session.metadata?.planName || "Token Plan";
+
+  await sendEmail({
+    to: user.email,
+    subject: "Purchase Successful - Tokens Added",
+    text: `Your purchase of ${planName} was successful. ${tokens} tokens added.`,
+    html: getPlanBoughtEmailTemplate(
+      user.firstName || user.email.split("@")[0],
+      planName,
+      tokens,
+      session.amount_total || 0,
+      session.currency || "usd",
+    ),
   });
 
   return apiSuccess(

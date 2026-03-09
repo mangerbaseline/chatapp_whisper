@@ -6,6 +6,8 @@ import { withApiHandler } from "@/utils/withApiHandler";
 import { hashPassword } from "@/lib/hash";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+import { sendEmail } from "@/lib/mail";
+import { getWelcomeEmailTemplate } from "@/lib/email-templates";
 
 export const POST = withApiHandler(async (req: NextRequest) => {
   await dbConnect();
@@ -59,6 +61,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     createdAt: user.createdAt,
     provider: user.provider,
   };
+
+  await sendEmail({
+    to: email,
+    subject: "Welcome to Chat App",
+    text: "Welcome to Chat App! We are thrilled to have you.",
+    html: getWelcomeEmailTemplate(firstName || email.split("@")[0]),
+  });
 
   return apiSuccess(201, safeUser, "User registered successfully.");
 });

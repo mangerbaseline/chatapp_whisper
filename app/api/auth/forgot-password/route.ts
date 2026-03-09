@@ -7,6 +7,7 @@ import User from "@/models/User";
 import { apiSuccess } from "@/utils/api-response";
 import { hashPassword } from "@/lib/hash";
 import { sendEmail } from "@/lib/mail";
+import { getPasswordResetEmailTemplate } from "@/lib/email-templates";
 import { sendSms } from "@/lib/sms";
 
 export const POST = withApiHandler(async (req: NextRequest) => {
@@ -43,9 +44,12 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   await Promise.all([
     sendEmail({
       to: user.email,
-      subject: "Your OTP for Password Reset",
+      subject: "Password Reset Request",
       text: `Your OTP is: ${otp}`,
-      html: `<p>Your OTP for password reset is: <strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>`,
+      html: getPasswordResetEmailTemplate(
+        user.firstName || user.email.split("@")[0],
+        otp,
+      ),
     }),
     sendSms(
       user.mobileNo ?? "",

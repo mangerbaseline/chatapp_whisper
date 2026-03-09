@@ -7,6 +7,10 @@ import { withApiHandler } from "@/utils/withApiHandler";
 import { apiSuccess } from "@/utils/api-response";
 import { ApiError } from "@/utils/api-error";
 import { sendEmail } from "@/lib/mail";
+import {
+  getRefundInitiatedEmailTemplate,
+  getRefundRejectedEmailTemplate,
+} from "@/lib/email-templates";
 import stripe from "@/lib/stripe";
 
 export const PATCH = withApiHandler(
@@ -98,35 +102,24 @@ export const PATCH = withApiHandler(
           to: refundUser.email,
           subject: "Your Refund Has Been Initiated",
           text: `Your refund request for ${planName} has been initiated. Refund amount: ${refundAmountFormatted} ${curr} (${refund.percentageCut}% platform fee applied).`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #16a34a;">Refund Initiated &#10003;</h2>
-              <p>Hi ${refundUser.firstName || "there"},</p>
-              <p>Your refund request for <strong>${planName}</strong> has been initiated.</p>
-              <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-                <tr><td style="padding: 8px; border: 1px solid #e5e7eb;">Refund Amount</td><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">${refundAmountFormatted} ${curr}</td></tr>
-                <tr><td style="padding: 8px; border: 1px solid #e5e7eb;">Platform Fee</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${refund.percentageCut}%</td></tr>
-                <tr><td style="padding: 8px; border: 1px solid #e5e7eb;">Tokens Deducted</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${refund.tokensDeducted}</td></tr>
-              </table>
-              ${refund.adminNote ? `<p><strong>Note:</strong> ${refund.adminNote}</p>` : ""}
-              <p style="color: #6b7280; font-size: 14px;">The refund will be processed to your original payment method shortly.</p>
-            </div>
-          `,
+          html: getRefundInitiatedEmailTemplate(
+            refundUser.firstName || refundUser.email.split("@")[0],
+            planName,
+            refund.refundAmount / 100,
+            curr,
+            refund.adminNote,
+          ),
         });
       } else {
         await sendEmail({
           to: refundUser.email,
           subject: "Your Refund Request Has Been Rejected",
           text: `Your refund request for ${planName} has been rejected.${refund.adminNote ? " Reason: " + refund.adminNote : ""}`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #dc2626;">Refund Request Rejected</h2>
-              <p>Hi ${refundUser.firstName || "there"},</p>
-              <p>Unfortunately, your refund request for <strong>${planName}</strong> has been rejected.</p>
-              ${refund.adminNote ? `<p><strong>Reason:</strong> ${refund.adminNote}</p>` : ""}
-              <p style="color: #6b7280; font-size: 14px;">If you believe this is an error, please create a support ticket to discuss further.</p>
-            </div>
-          `,
+          html: getRefundRejectedEmailTemplate(
+            refundUser.firstName || refundUser.email.split("@")[0],
+            planName,
+            refund.adminNote,
+          ),
         });
       }
     }

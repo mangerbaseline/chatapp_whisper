@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import stripe from "@/lib/stripe";
 import dbConnect from "@/lib/dbConnect";
 import RefundRequest from "@/models/RefundRequest";
+import { sendEmail } from "@/lib/mail";
+import { getRefundedEmailTemplate } from "@/lib/email-templates";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -28,10 +30,32 @@ export async function POST(req: NextRequest) {
       const refundRequestId = refund.metadata?.refundRequestId;
 
       if (refundRequestId && refund.status === "succeeded") {
-        await RefundRequest.findByIdAndUpdate(refundRequestId, {
-          status: "refunded",
-        });
-        console.log(`Refund ${refundRequestId} marked as refunded!`);
+        const updatedRefund = await RefundRequest.findByIdAndUpdate(
+          refundRequestId,
+          { status: "refunded" },
+        )
+          .populate({
+            path: "transaction",
+            populate: { path: "plan", select: "name" },
+          })
+          .populate("user");
+
+        if (updatedRefund) {
+          console.log(`Refund ${refundRequestId} marked as refunded!`);
+          const user: any = updatedRefund.user;
+          const transaction: any = updatedRefund.transaction;
+          if (user?.email) {
+            await sendEmail({
+              to: user.email,
+              subject: "Refund Processing Complete",
+              text: `Your refund for ${transaction?.plan?.name || "your plan"} has completed processing.`,
+              html: getRefundedEmailTemplate(
+                user.firstName || user.email.split("@")[0],
+                transaction?.plan?.name || "your plan",
+              ),
+            });
+          }
+        }
       }
     }
 
