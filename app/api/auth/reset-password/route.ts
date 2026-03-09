@@ -24,11 +24,15 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw new ApiError(403, "Invalid or expired reset token");
   }
 
-  user.password = await hashPassword(newPassword);
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpiry = undefined;
+  const hashedPassword = await hashPassword(newPassword);
 
-  await user.save();
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $unset: { resetPasswordToken: 1, resetPasswordExpiry: 1 },
+      $set: { password: hashedPassword },
+    },
+  );
 
   return apiSuccess(200, null, "Password reset successful");
 });

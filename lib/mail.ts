@@ -1,11 +1,10 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
-  port: 2525,
+  service: "gmail",
   auth: {
-    user: process.env.MAILTRAP_USER,
-    pass: process.env.MAILTRAP_PASS,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
   },
 });
 
@@ -19,7 +18,7 @@ interface nodeMailer {
 export const sendEmail = async ({ to, subject, text, html }: nodeMailer) => {
   try {
     const info = await transporter.sendMail({
-      from: '"Your App" <no-reply@yourapp.com>',
+      from: `"Chat App" <${process.env.GMAIL_USER}>`,
       to,
       subject,
       text,

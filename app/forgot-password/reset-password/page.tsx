@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
     );
 
     if (resetPassword.fulfilled.match(res)) {
-      router.push("/sign-in");
+      router.push("/auth/sign-in");
       if (successMessage) {
         toast.success(successMessage);
       } else {

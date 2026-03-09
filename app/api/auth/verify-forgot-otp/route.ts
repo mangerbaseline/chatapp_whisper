@@ -35,12 +35,16 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const resetToken = randomBytes(32).toString("hex");
   const resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-  user.otp = undefined;
-  user.otpExpiry = undefined;
-  user.resetPasswordToken = resetToken;
-  user.resetPasswordExpiry = resetTokenExpiry;
-
-  await user.save();
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $unset: { otp: 1, otpExpiry: 1 },
+      $set: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpiry: resetTokenExpiry,
+      },
+    },
+  );
 
   return apiSuccess(
     200,

@@ -7,6 +7,12 @@ import { updateSchema } from "@/verification/auth.verification";
 import { NextRequest } from "next/server";
 
 export const PATCH = withApiHandler(async (req: NextRequest) => {
+  const userId = req.headers.get("x-user-id");
+
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
   await dbConnect();
 
   const body = await req.json();
@@ -21,7 +27,7 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
     parsed.data;
 
   const exist = await User.findOne({
-    email,
+    _id: userId,
   });
 
   if (!exist) {
@@ -29,7 +35,7 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
   }
 
   await User.updateOne(
-    { email },
+    { _id: userId },
     {
       email,
       firstName,
