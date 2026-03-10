@@ -17,7 +17,7 @@ export default function DashboardNotifications() {
     return <div className="w-10 h-10" />;
   }
 
-  if (user.role === "admin") {
+  if (user?.role?.toUpperCase() === "ADMIN") {
     return <AdminNotifications />;
   }
 
