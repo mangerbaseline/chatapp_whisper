@@ -116,8 +116,6 @@ export default function AdminNotifications() {
     if (!notification.isRead && notification._id) {
       handleMarkAsRead(notification._id);
     }
-    setOpen(false);
-    router.push(notification.link);
   };
 
   const getIconForType = (type: string) => {

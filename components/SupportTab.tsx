@@ -189,7 +189,7 @@ export default function SupportTab() {
 
     setIsSubmittingRefund(true);
     try {
-      await axios.post("/api/refund", {
+      const refundRes = await axios.post("/api/refund", {
         transactionId: selectedTxn,
         reason: refundReason.trim(),
       });
@@ -205,7 +205,7 @@ export default function SupportTab() {
             title: "New Refund Request",
             message: `${name} requested a refund.`,
             link: `/dashboard/admin-tickets?tab=refunds`,
-            relatedId: res.data.data?._id,
+            relatedId: refundRes.data.data?._id,
           });
           socket.emit("admin:notify", notifyRes.data.data);
         } catch (e) {
