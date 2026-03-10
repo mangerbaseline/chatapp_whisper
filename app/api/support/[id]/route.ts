@@ -61,7 +61,7 @@ export const PATCH = withApiHandler(
           subject: `Support Ticket Closed: ${ticket.subject}`,
           text: `Your support ticket has been closed. Ticket ID: ${ticket.ticketId}`,
           html: getTicketClosedEmailTemplate(
-            ticketCreator.firstName,
+            ticketCreator.firstName || "User",
             ticket.ticketId,
             ticket.subject,
           ),
