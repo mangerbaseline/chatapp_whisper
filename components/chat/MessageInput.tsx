@@ -28,6 +28,7 @@ interface MessageInputProps {
   onTyping: (isTyping: boolean) => void;
   recipientId?: string;
   recipientName?: string;
+  isSupportChat?: boolean;
 }
 
 export default function MessageInput({
@@ -36,6 +37,7 @@ export default function MessageInput({
   onTyping,
   recipientId,
   recipientName,
+  isSupportChat,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -232,7 +234,7 @@ export default function MessageInput({
               />
             </PopoverContent>
           </Popover>
-          {recipientId && (
+          {recipientId && !isSupportChat && (
             <SendTokensModal
               recipientId={recipientId}
               recipientName={recipientName || "User"}

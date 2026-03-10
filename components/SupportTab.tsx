@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSocket } from "@/components/SocketProvider";
 
 interface Ticket {
   _id: string;
@@ -85,6 +86,7 @@ export default function SupportTab() {
   const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
 
   const router = useRouter();
+  const { socket } = useSocket();
 
   const fetchTickets = async () => {
     try {
@@ -141,6 +143,25 @@ export default function SupportTab() {
       setSubject("");
 
       const newTicket = res.data.data;
+
+      if (socket) {
+        try {
+          const authUser = await axios.get("/api/auth/me");
+          const name = authUser.data?.data?.firstName || "A user";
+
+          const notifyRes = await axios.post("/api/admin/notifications", {
+            type: "new_ticket",
+            title: "New Support Ticket",
+            message: `${name} opened ticket ${newTicket.ticketId}: ${subject}`,
+            link: `/dashboard/admin-tickets/${newTicket._id}`,
+            relatedId: newTicket._id,
+          });
+          socket.emit("admin:notify", notifyRes.data.data);
+        } catch (e) {
+          console.error("Failed to notify admins", e);
+        }
+      }
+
       router.push(`/support/${newTicket._id}`);
     } catch (error) {
       console.error("Failed to create ticket:", error);
@@ -173,6 +194,25 @@ export default function SupportTab() {
         reason: refundReason.trim(),
       });
       toast.success("Refund request submitted!");
+
+      if (socket) {
+        try {
+          const authUser = await axios.get("/api/auth/me");
+          const name = authUser.data?.data?.firstName || "A user";
+
+          const notifyRes = await axios.post("/api/admin/notifications", {
+            type: "new_refund_request",
+            title: "New Refund Request",
+            message: `${name} requested a refund.`,
+            link: `/dashboard/admin-tickets?tab=refunds`,
+            relatedId: res.data.data?._id,
+          });
+          socket.emit("admin:notify", notifyRes.data.data);
+        } catch (e) {
+          console.error("Failed to notify admins", e);
+        }
+      }
+
       setIsRefundOpen(false);
       setSelectedTxn("");
       setRefundReason("");

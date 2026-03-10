@@ -490,7 +490,7 @@ export default function DashboardPage() {
                 />
                 <Bar
                   dataKey="refunded"
-                  fill="var(--color-chart-5)"
+                  fill="var(--color-chart-3)"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={48}
                   stackId="a"

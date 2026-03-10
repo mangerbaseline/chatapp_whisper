@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface Ticket {
   _id: string;
@@ -307,7 +307,19 @@ function RefundList() {
   );
 }
 
-export default function AdminTicketsPage() {
+function AdminTicketsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const currentTab = searchParams.get("tab") || "tickets";
+
+  const handleTabChange = (val: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", val);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -319,22 +331,18 @@ export default function AdminTicketsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="tickets" className="space-y-4">
+      <Tabs
+        value={currentTab}
+        onValueChange={handleTabChange}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
           <TabsTrigger value="refunds">Refund Requests</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tickets">
-          <Suspense
-            fallback={
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            }
-          >
-            <TicketList />
-          </Suspense>
+          <TicketList />
         </TabsContent>
 
         <TabsContent value="refunds">
@@ -342,5 +350,19 @@ export default function AdminTicketsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function AdminTicketsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <AdminTicketsContent />
+    </Suspense>
   );
 }

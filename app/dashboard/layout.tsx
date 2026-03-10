@@ -1,5 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import InviteNotifications from "@/components/InviteNotifications";
+import DashboardNotifications from "@/components/DashboardNotifications";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Field } from "@/components/ui/field";
 import {
@@ -55,7 +55,7 @@ export default function DashboardLayout({
               </InputGroup>
             </Field>
             <ModeToggle />
-            <InviteNotifications />
+            <DashboardNotifications />
             <UserDropdown />
           </div>
           <div className="pointer-events-none absolute -bottom-2 left-0 w-full h-2 bg-linear-to-b from-background to-transparent" />

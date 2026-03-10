@@ -26,6 +26,7 @@ import {
 } from "@/redux/features/chat/chatSlice";
 import type { Attachment } from "@/redux/features/chat/chatSlice";
 import Link from "next/link";
+import axios from "axios";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -157,6 +158,21 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
             conversationId,
             message: newMessage,
           });
+
+          if (conversation?.isSupportTicket && currentUser?.role !== "admin") {
+            try {
+              const notifyRes = await axios.post("/api/admin/notifications", {
+                type: "ticket_message",
+                title: "New Ticket Message",
+                message: `${currentUser?.firstName || "A user"} replied to ${conversation.name}`,
+                link: `/dashboard/admin-tickets/${conversationId}`,
+                relatedId: conversationId,
+              });
+              socket.emit("admin:notify", notifyRes.data.data);
+            } catch (e) {
+              console.error("Failed to notify admins of ticket message", e);
+            }
+          }
         }
       }
     } catch (error) {
@@ -248,18 +264,20 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
         </div>
         {!details.isGroup && (
           <div className="flex items-center gap-1">
-            <Link href="/wallet">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full h-9 px-3 transition-colors text-primary hover:bg-primary/10 gap-1.5"
-              >
-                <Wallet className="h-4 w-4" />
-                <span className="text-xs font-semibold">
-                  {(balance ?? 0).toLocaleString()}
-                </span>
-              </Button>
-            </Link>
+            {!conversation?.isSupportTicket && (
+              <Link href="/wallet">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full h-9 px-3 transition-colors text-primary hover:bg-primary/10 gap-1.5"
+                >
+                  <Wallet className="h-4 w-4" />
+                  <span className="text-xs font-semibold">
+                    {(balance ?? 0).toLocaleString()}
+                  </span>
+                </Button>
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -452,6 +470,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
           onTyping={handleTyping}
           recipientId={otherUser?._id}
           recipientName={details.name || "User"}
+          isSupportChat={conversation?.isSupportTicket}
         />
       </div>
     </div>

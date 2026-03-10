@@ -111,6 +111,15 @@ app.prepare().then(() => {
       console.log(`User ${socket.userId} left conversation ${conversationId}`);
     });
 
+    socket.on("join_admin", () => {
+      socket.join("admins");
+      console.log(`User ${socket.userId} joined admins room`);
+    });
+
+    socket.on("admin:notify", (payload) => {
+      io.to("admins").emit("admin:new_notification", payload);
+    });
+
     socket.on("send_message", async (data) => {
       const { conversationId, message } = data;
       console.log(`User ${socket.userId} sent message in ${conversationId}`);

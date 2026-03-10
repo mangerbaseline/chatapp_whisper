@@ -221,6 +221,25 @@ export const updateProfileImage = createAsyncThunk<
   }
 });
 
+export const updatePublicProfileImage = createAsyncThunk<
+  any,
+  FormData,
+  { rejectValue: ApiError }
+>("auth/updatePublicProfileImage", async (formData, { rejectWithValue }) => {
+  try {
+    const res = await axios.patch("/api/auth/profile-image/public", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue({
+      message: err.response?.data?.message || "Profile image upload failed",
+    });
+  }
+});
+
 export const deleteAccount = createAsyncThunk<
   any,
   void,
@@ -425,6 +444,21 @@ const authSlice = createSlice({
         state.successMessage = action.payload.message;
       })
       .addCase(updateProfileImage.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.message || null;
+      })
+      .addCase(updatePublicProfileImage.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updatePublicProfileImage.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (state.user) {
+          state.user.image = action.payload.data.image;
+        }
+        state.successMessage = action.payload.message;
+      })
+      .addCase(updatePublicProfileImage.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.message || null;
       });

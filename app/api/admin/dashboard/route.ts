@@ -106,8 +106,17 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     { $match: { type: "purchase" } },
     { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
-  const totalTokensSold =
+  const grossTokensSold =
     circulationAgg.length > 0 ? circulationAgg[0].total : 0;
+
+  const refundedTokensAgg = await RefundRequest.aggregate([
+    { $match: { status: { $in: ["refunded", "initiated"] } } },
+    { $group: { _id: null, totalTokens: { $sum: "$tokensDeducted" } } },
+  ]);
+  const totalTokensRefunded =
+    refundedTokensAgg.length > 0 ? refundedTokensAgg[0].totalTokens : 0;
+
+  const totalTokensSold = grossTokensSold - totalTokensRefunded;
 
   const totalTransactions = await TokenTransaction.countDocuments();
 

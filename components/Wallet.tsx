@@ -46,6 +46,7 @@ export default function Wallet() {
   } = useAppSelector((state) => state.wallet);
 
   const [activeTab, setActiveTab] = useState("buy");
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchBalance());
@@ -79,9 +80,14 @@ export default function Wallet() {
   }, [error, dispatch]);
 
   const handleBuyTokens = async (planId: string) => {
-    const result = await dispatch(createCheckoutSession(planId)).unwrap();
-    if (result?.url) {
-      window.location.href = result.url;
+    setLoadingPlanId(planId);
+    try {
+      const result = await dispatch(createCheckoutSession(planId)).unwrap();
+      if (result?.url) {
+        window.location.href = result.url;
+      }
+    } finally {
+      setLoadingPlanId(null);
     }
   };
 
@@ -182,9 +188,9 @@ export default function Wallet() {
                     <Button
                       className="w-full cursor-pointer"
                       onClick={() => handleBuyTokens(plan._id)}
-                      disabled={isLoading}
+                      disabled={loadingPlanId === plan._id || isLoading}
                     >
-                      {isLoading ? (
+                      {loadingPlanId === plan._id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>

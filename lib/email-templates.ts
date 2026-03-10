@@ -14,6 +14,7 @@ export const getWelcomeEmailTemplate = (name: string) => `
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Welcome to Chat App!</h1>
     </div>
     <div class="content">
@@ -46,6 +47,7 @@ export const getPasswordResetEmailTemplate = (name: string, otp: string) => `
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Password Reset Request</h1>
     </div>
     <div class="content">
@@ -82,6 +84,7 @@ export const getPlanBoughtEmailTemplate = (
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Purchase Successful!</h1>
     </div>
     <div class="content">
@@ -101,6 +104,7 @@ export const getPlanBoughtEmailTemplate = (
 
 export const getRefundRequestEmailTemplate = (
   name: string,
+  refundId: string,
   planName: string,
   reason: string,
 ) => `
@@ -119,6 +123,7 @@ export const getRefundRequestEmailTemplate = (
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Refund Request Received</h1>
     </div>
     <div class="content">
@@ -126,6 +131,7 @@ export const getRefundRequestEmailTemplate = (
       <p>We've received your refund request for the <strong>${planName}</strong> plan.</p>
       <p>Our team will review your request based on the reason provided:</p>
       <div class="details">
+        <p><strong>Refund ID:</strong> ${refundId}</p>
         <p><em>"${reason}"</em></p>
       </div>
       <p>We will notify you once a decision has been made. This process typically takes 1-2 business days.</p>
@@ -137,6 +143,7 @@ export const getRefundRequestEmailTemplate = (
 
 export const getRefundInitiatedEmailTemplate = (
   name: string,
+  refundId: string,
   planName: string,
   amount: number,
   currency: string,
@@ -158,11 +165,13 @@ export const getRefundInitiatedEmailTemplate = (
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Refund Approved</h1>
     </div>
     <div class="content">
       <p>Hi ${name},</p>
       <p>Good news! Your refund request for the <strong>${planName}</strong> plan has bene approved and the refund has been initiated.</p>
+      <p><strong>Refund ID:</strong> ${refundId}</p>
       <div class="amount">
         ${amount.toFixed(2)} ${currency.toUpperCase()}
       </div>
@@ -176,6 +185,7 @@ export const getRefundInitiatedEmailTemplate = (
 
 export const getRefundRejectedEmailTemplate = (
   name: string,
+  refundId: string,
   planName: string,
   adminNote?: string,
 ) => `
@@ -194,11 +204,12 @@ export const getRefundRejectedEmailTemplate = (
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Refund Request Update</h1>
     </div>
     <div class="content">
       <p>Hi ${name},</p>
-      <p>We've reviewed your refund request for the <strong>${planName}</strong> plan.</p>
+      <p>We've reviewed your refund request for the <strong>${planName}</strong> plan (Refund ID: ${refundId}).</p>
       <p>Unfortunately, we are unable to process this refund. Your tokens remain in your account.</p>
       ${adminNote ? `<div class="note"><strong>Reason:</strong> ${adminNote}</div>` : ""}
       <p>If you have further questions, please reach out to our support team.</p>
@@ -208,7 +219,11 @@ export const getRefundRejectedEmailTemplate = (
 </html>
 `;
 
-export const getRefundedEmailTemplate = (name: string, planName: string) => `
+export const getRefundedEmailTemplate = (
+  name: string,
+  refundId: string,
+  planName: string,
+) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -223,11 +238,12 @@ export const getRefundedEmailTemplate = (name: string, planName: string) => `
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Refund Complete</h1>
     </div>
     <div class="content">
       <p>Hi ${name},</p>
-      <p>Your refund for the <strong>${planName}</strong> plan has successfully finished processing and the funds should now be available in your original payment method.</p>
+      <p>Your refund for the <strong>${planName}</strong> plan (Refund ID: ${refundId}) has successfully finished processing and the funds should now be available in your original payment method.</p>
       <p>Thank you for your patience!</p>
     </div>
   </div>
@@ -256,6 +272,7 @@ export const getTicketCreatedEmailTemplate = (
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Support Ticket Created</h1>
     </div>
     <div class="content">
@@ -293,6 +310,7 @@ export const getTicketClosedEmailTemplate = (
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Support Ticket Closed</h1>
     </div>
     <div class="content">
@@ -324,6 +342,7 @@ export const getPasswordResetSuccessEmailTemplate = (name: string) => `
 <body>
   <div class="container">
     <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
       <h1>Password Reset Successful</h1>
     </div>
     <div class="content">

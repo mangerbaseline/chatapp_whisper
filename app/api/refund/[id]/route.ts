@@ -101,9 +101,10 @@ export const PATCH = withApiHandler(
         await sendEmail({
           to: refundUser.email,
           subject: "Your Refund Has Been Initiated",
-          text: `Your refund request for ${planName} has been initiated. Refund amount: ${refundAmountFormatted} ${curr} (${refund.percentageCut}% platform fee applied).`,
+          text: `Your refund request for ${planName} has been initiated. Refund ID: ${refund._id.toString()}, Refund amount: ${refundAmountFormatted} ${curr} (${refund.percentageCut}% platform fee applied).`,
           html: getRefundInitiatedEmailTemplate(
             refundUser.firstName || refundUser.email.split("@")[0],
+            refund._id.toString(),
             planName,
             refund.refundAmount / 100,
             curr,
@@ -114,9 +115,10 @@ export const PATCH = withApiHandler(
         await sendEmail({
           to: refundUser.email,
           subject: "Your Refund Request Has Been Rejected",
-          text: `Your refund request for ${planName} has been rejected.${refund.adminNote ? " Reason: " + refund.adminNote : ""}`,
+          text: `Your refund request for ${planName} has been rejected. Refund ID: ${refund._id.toString()}${refund.adminNote ? " Reason: " + refund.adminNote : ""}`,
           html: getRefundRejectedEmailTemplate(
             refundUser.firstName || refundUser.email.split("@")[0],
+            refund._id.toString(),
             planName,
             refund.adminNote,
           ),

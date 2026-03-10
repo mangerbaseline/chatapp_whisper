@@ -12,10 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import DobPicker from "./DobPicker";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { calculateAge } from "@/utils/ageCalculator";
 import { Textarea } from "./ui/textarea";
-import { register, clearAuthState } from "@/redux/features/auth/authSlice";
+import {
+  register,
+  clearAuthState,
+  updatePublicProfileImage,
+} from "@/redux/features/auth/authSlice";
 import { registerSchema } from "@/verification/auth.verification";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -24,6 +28,8 @@ import GoogleLoginBtn from "./GoogleLoginBtn";
 import GitHubLoginBtn from "./GitHubLoginBtn";
 import { AuthAnimation } from "./auth-animation";
 import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Camera } from "lucide-react";
 
 type SignupFormState = {
   firstName: string;
@@ -45,6 +51,26 @@ export function SignupForm() {
     dispatch(clearAuthState());
   }, [dispatch]);
   const router = useRouter();
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const [formData, setFormData] = useState<SignupFormState>({
     firstName: "",
@@ -83,7 +109,21 @@ export function SignupForm() {
     const validatedData = result.data;
 
     try {
-      await dispatch(register(validatedData)).unwrap();
+      const regRes = await dispatch(register(validatedData)).unwrap();
+
+      if (selectedFile) {
+        const imageFormData = new FormData();
+        imageFormData.append("file", selectedFile);
+        if (regRes?.data?._id) {
+          imageFormData.append("userId", regRes.data._id);
+        }
+        try {
+          await dispatch(updatePublicProfileImage(imageFormData)).unwrap();
+        } catch (imgErr: any) {
+          toast.error(imgErr?.message || "Image upload failed");
+        }
+      }
+
       toast.success("User registered successfully.");
       router.push("/auth/sign-in");
     } catch (err: any) {
@@ -122,6 +162,33 @@ export function SignupForm() {
                 <p className="text-muted-foreground text-sm font-semibold text-balance">
                   Enter your details below to create your account
                 </p>
+                <div className="mt-6 flex justify-center">
+                  <div className="relative group">
+                    <Avatar className="h-24 w-24 border-2 border-border group-hover:border-primary transition-colors">
+                      <AvatarImage
+                        src={previewImage || "/man.png"}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                        U
+                      </AvatarFallback>
+                    </Avatar>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-transform hover:scale-110 shadow-lg cursor-pointer"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
               <Field>
                 <Field className="grid grid-cols-2 gap-4">

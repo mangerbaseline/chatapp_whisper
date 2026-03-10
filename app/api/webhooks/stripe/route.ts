@@ -48,9 +48,10 @@ export async function POST(req: NextRequest) {
             await sendEmail({
               to: user.email,
               subject: "Refund Processing Complete",
-              text: `Your refund for ${transaction?.plan?.name || "your plan"} has completed processing.`,
+              text: `Your refund for ${transaction?.plan?.name || "your plan"} has completed processing. Refund ID: ${refundRequestId}`,
               html: getRefundedEmailTemplate(
                 user.firstName || user.email.split("@")[0],
+                refundRequestId,
                 transaction?.plan?.name || "your plan",
               ),
             });

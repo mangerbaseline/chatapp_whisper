@@ -5,6 +5,7 @@ import Invitation from "./Invitation";
 import Event from "./Event";
 import TokenPlan from "./TokenPlan";
 import TokenTransaction from "./TokenTransaction";
+import Notification from "./Notification";
 
 export {
   User,
@@ -14,4 +15,5 @@ export {
   Event,
   TokenPlan,
   TokenTransaction,
+  Notification,
 };

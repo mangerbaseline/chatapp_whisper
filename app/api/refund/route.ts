@@ -89,9 +89,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     await sendEmail({
       to: requestUser.email,
       subject: "Refund Request Received",
-      text: `We have received your refund request for ${planInfo?.name || "the plan"}.`,
+      text: `We have received your refund request for ${planInfo?.name || "the plan"}. Refund ID: ${refund._id.toString()}`,
       html: getRefundRequestEmailTemplate(
         requestUser.firstName || requestUser.email.split("@")[0],
+        refund._id.toString(),
         planInfo?.name || "the plan",
         reason.trim(),
       ),

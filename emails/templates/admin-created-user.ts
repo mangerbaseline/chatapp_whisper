@@ -37,6 +37,9 @@ The Our Platform Team
 <html>
   <body style="background:#f5f7fa;padding:24px;font-family:Arial,sans-serif;">
     <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:8px;padding:32px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <img src="${baseUrl}/logo.png" alt="Logo" style="height:40px;" />
+      </div>
       <h2>Welcome to Our Platform</h2>
       <p>Hi <strong>${firstName}</strong>,</p>
       <p>An administrator has created an account for you.</p>
