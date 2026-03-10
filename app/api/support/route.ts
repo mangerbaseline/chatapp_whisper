@@ -6,6 +6,8 @@ import { Conversation } from "@/models";
 import { withApiHandler } from "@/utils/withApiHandler";
 import { apiSuccess } from "@/utils/api-response";
 import { ApiError } from "@/utils/api-error";
+import { sendEmail } from "@/lib/mail";
+import { getTicketCreatedEmailTemplate } from "@/lib/email-templates";
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   await dbConnect();
@@ -67,6 +69,20 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     subject,
     conversation: conversation._id,
   });
+
+  const ticketCreator = await User.findById(userId);
+  if (ticketCreator) {
+    await sendEmail({
+      to: ticketCreator.email,
+      subject: `Support Ticket Created: ${subject}`,
+      text: `Your support ticket has been created successfully. Ticket ID: ${ticketId}`,
+      html: getTicketCreatedEmailTemplate(
+        ticketCreator.firstName || "User",
+        ticketId,
+        subject,
+      ),
+    });
+  }
 
   return apiSuccess(201, ticket, "Support ticket created successfully.");
 });

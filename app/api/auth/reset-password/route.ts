@@ -5,6 +5,8 @@ import { ApiError } from "@/utils/api-error";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/hash";
 import { apiSuccess } from "@/utils/api-response";
+import { sendEmail } from "@/lib/mail";
+import { getPasswordResetSuccessEmailTemplate } from "@/lib/email-templates";
 
 export const POST = withApiHandler(async (req: NextRequest) => {
   await dbConnect();
@@ -33,6 +35,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       $set: { password: hashedPassword },
     },
   );
+
+  await sendEmail({
+    to: user.email,
+    subject: "Password Reset Successful",
+    text: "Your password has been successfully reset. You can now log in.",
+    html: getPasswordResetSuccessEmailTemplate(user.firstName || "User"),
+  });
 
   return apiSuccess(200, null, "Password reset successful");
 });

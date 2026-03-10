@@ -5,6 +5,8 @@ import User, { UserRole } from "@/models/User";
 import { withApiHandler } from "@/utils/withApiHandler";
 import { apiSuccess } from "@/utils/api-response";
 import { ApiError } from "@/utils/api-error";
+import { sendEmail } from "@/lib/mail";
+import { getTicketClosedEmailTemplate } from "@/lib/email-templates";
 
 export const GET = withApiHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
@@ -50,6 +52,22 @@ export const PATCH = withApiHandler(
     );
 
     if (!ticket) throw new ApiError(404, "Ticket not found.");
+
+    if (status === "fulfilled") {
+      const ticketCreator = await User.findById(ticket.user);
+      if (ticketCreator) {
+        await sendEmail({
+          to: ticketCreator.email,
+          subject: `Support Ticket Closed: ${ticket.subject}`,
+          text: `Your support ticket has been closed. Ticket ID: ${ticket.ticketId}`,
+          html: getTicketClosedEmailTemplate(
+            ticketCreator.firstName,
+            ticket.ticketId,
+            ticket.subject,
+          ),
+        });
+      }
+    }
 
     return apiSuccess(200, ticket, "Ticket updated successfully.");
   },
