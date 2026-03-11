@@ -19,6 +19,8 @@ import {
   VideoOff,
   Maximize2,
   Minimize2,
+  MonitorUp,
+  MonitorX,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
@@ -26,12 +28,17 @@ import { useState, useEffect, useRef } from "react";
 export function CallOverlay() {
   const dispatch = useAppDispatch();
   const { socket } = useSocket();
-  const { status, partner, isMuted, isVideo, errorMessage } = useAppSelector(
-    (state) => state.call,
-  );
+  const { status, partner, isMuted, isVideo, errorMessage, isScreenSharing } =
+    useAppSelector((state) => state.call);
   const currentUser = useAppSelector((state) => state.auth.user);
-  const { remoteAudioRef, localVideoRef, remoteVideoRef, cleanup } =
-    useWebRTC();
+  const {
+    remoteAudioRef,
+    localVideoRef,
+    remoteVideoRef,
+    cleanup,
+    startScreenShare,
+    stopScreenShare,
+  } = useWebRTC();
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const ringAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -100,6 +107,14 @@ export function CallOverlay() {
     }
   };
 
+  const toggleScreenShare = () => {
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      startScreenShare();
+    }
+  };
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300 ${isFullScreen ? "p-0" : "p-4"}`}
@@ -115,7 +130,7 @@ export function CallOverlay() {
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            className="absolute inset-0 w-full h-full object-cover bg-black"
+            className={`absolute inset-0 w-full h-full bg-black ${isScreenSharing ? "object-contain" : "object-cover"}`}
           />
         )}
 
@@ -127,7 +142,7 @@ export function CallOverlay() {
               autoPlay
               playsInline
               muted
-              className={`w-full h-full object-cover ${isCameraOff ? "hidden" : ""}`}
+              className={`w-full h-full ${isScreenSharing ? "object-contain" : "object-cover"} ${isCameraOff && !isScreenSharing ? "hidden" : ""}`}
             />
             {isCameraOff && (
               <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -222,6 +237,25 @@ export function CallOverlay() {
                       <VideoOff className="h-5 w-5" />
                     ) : (
                       <Video className="h-5 w-5" />
+                    )}
+                  </Button>
+                )}
+
+                {isVideo && (
+                  <Button
+                    onClick={toggleScreenShare}
+                    variant="outline"
+                    size="icon"
+                    className={`rounded-full h-12 w-12 border-white/10 hover:bg-white/10 transition-colors ${
+                      isScreenSharing
+                        ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                        : "bg-white/5 text-white"
+                    }`}
+                  >
+                    {isScreenSharing ? (
+                      <MonitorX className="h-5 w-5" />
+                    ) : (
+                      <MonitorUp className="h-5 w-5" />
                     )}
                   </Button>
                 )}

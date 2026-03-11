@@ -8,6 +8,7 @@ import {
   endCall,
   incomingCall,
   setError,
+  setScreenSharing,
 } from "@/redux/features/chat/callSlice";
 
 export function useWebRTC() {
@@ -24,6 +25,7 @@ export function useWebRTC() {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const partnerRef = useRef(partner);
   const isVideoRef = useRef(isVideo);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
@@ -100,7 +102,77 @@ export function useWebRTC() {
       localVideoRef.current.srcObject = null;
     }
     setRemoteStream(null);
+
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
   }, []);
+
+  const startScreenShare = useCallback(async () => {
+    try {
+      if (!pcRef.current) return;
+
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      screenStreamRef.current = screenStream;
+
+      const screenTrack = screenStream.getVideoTracks()[0];
+
+      const sender = pcRef.current
+        .getSenders()
+        .find((s) => s.track?.kind === "video");
+
+      if (sender) {
+        sender.replaceTrack(screenTrack);
+      }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = screenStream;
+      }
+
+      dispatch(setScreenSharing(true));
+
+      screenTrack.onended = () => {
+        stopScreenShare();
+      };
+    } catch (err) {
+      console.error("Error sharing screen:", err);
+      dispatch(setError("Could not start screen share."));
+    }
+  }, [dispatch]);
+
+  const stopScreenShare = useCallback(async () => {
+    try {
+      if (!pcRef.current || !localStreamRef.current) return;
+
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => track.stop());
+        screenStreamRef.current = null;
+      }
+
+      const cameraTrack = localStreamRef.current.getVideoTracks()[0];
+
+      const sender = pcRef.current
+        .getSenders()
+        .find((s) => s.track?.kind === "video");
+
+      if (sender && cameraTrack) {
+        sender.replaceTrack(cameraTrack);
+      }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+
+      dispatch(setScreenSharing(false));
+    } catch (err) {
+      console.error("Error stopping screen share:", err);
+    }
+  }, [dispatch]);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -273,5 +345,12 @@ export function useWebRTC() {
     }
   }, [isMuted]);
 
-  return { remoteAudioRef, localVideoRef, remoteVideoRef, cleanup };
+  return {
+    remoteAudioRef,
+    localVideoRef,
+    remoteVideoRef,
+    cleanup,
+    startScreenShare,
+    stopScreenShare,
+  };
 }

@@ -18,6 +18,7 @@ interface CallState {
   isMuted: boolean;
   isVideo: boolean;
   errorMessage: string | null;
+  isScreenSharing: boolean;
 }
 
 const initialState: CallState = {
@@ -26,6 +27,7 @@ const initialState: CallState = {
   isMuted: false,
   isVideo: false,
   errorMessage: null,
+  isScreenSharing: false,
 };
 
 const callSlice = createSlice({
@@ -75,6 +77,7 @@ const callSlice = createSlice({
       state.partner = null;
       state.isMuted = false;
       state.isVideo = false;
+      state.isScreenSharing = false;
     },
     setError: (state, action: PayloadAction<string>) => {
       state.status = "error";
@@ -82,6 +85,9 @@ const callSlice = createSlice({
     },
     toggleMute: (state) => {
       state.isMuted = !state.isMuted;
+    },
+    setScreenSharing: (state, action: PayloadAction<boolean>) => {
+      state.isScreenSharing = action.payload;
     },
   },
 });
@@ -93,5 +99,6 @@ export const {
   endCall,
   setError,
   toggleMute,
+  setScreenSharing,
 } = callSlice.actions;
 export default callSlice.reducer;
