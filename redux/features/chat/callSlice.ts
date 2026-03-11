@@ -83,6 +83,9 @@ const callSlice = createSlice({
       state.status = "error";
       state.errorMessage = action.payload;
     },
+    setWarning: (state, action: PayloadAction<string>) => {
+      state.errorMessage = action.payload;
+    },
     toggleMute: (state) => {
       state.isMuted = !state.isMuted;
     },
@@ -98,6 +101,7 @@ export const {
   acceptCall,
   endCall,
   setError,
+  setWarning,
   toggleMute,
   setScreenSharing,
 } = callSlice.actions;

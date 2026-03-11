@@ -8,6 +8,7 @@ import {
   endCall,
   incomingCall,
   setError,
+  setWarning,
   setScreenSharing,
 } from "@/redux/features/chat/callSlice";
 
@@ -60,6 +61,20 @@ export function useWebRTC() {
           to: partnerRef.current.id,
           candidate: event.candidate,
         });
+      }
+    };
+
+    pc.onnegotiationneeded = async () => {
+      try {
+        if (pc.signalingState !== "stable") return;
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket?.emit("webrtc:offer", {
+          to: partnerRef.current?.id,
+          offer,
+        });
+      } catch (err) {
+        console.error("Negotiation failed:", err);
       }
     };
 
@@ -127,7 +142,9 @@ export function useWebRTC() {
         .find((s) => s.track?.kind === "video");
 
       if (sender) {
-        sender.replaceTrack(screenTrack);
+        await sender.replaceTrack(screenTrack);
+      } else {
+        pcRef.current.addTrack(screenTrack, screenStream);
       }
 
       if (localVideoRef.current) {
@@ -147,25 +164,29 @@ export function useWebRTC() {
 
   const stopScreenShare = useCallback(async () => {
     try {
-      if (!pcRef.current || !localStreamRef.current) return;
+      if (!pcRef.current) return;
 
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach((track) => track.stop());
         screenStreamRef.current = null;
       }
 
-      const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-
       const sender = pcRef.current
         .getSenders()
         .find((s) => s.track?.kind === "video");
 
-      if (sender && cameraTrack) {
-        sender.replaceTrack(cameraTrack);
+      const cameraTrack = localStreamRef.current?.getVideoTracks()[0];
+
+      if (sender) {
+        if (cameraTrack) {
+          await sender.replaceTrack(cameraTrack);
+        } else {
+          pcRef.current.removeTrack(sender);
+        }
       }
 
       if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
+        localVideoRef.current.srcObject = localStreamRef.current || null;
       }
 
       dispatch(setScreenSharing(false));
@@ -229,9 +250,16 @@ export function useWebRTC() {
       } catch (err: any) {
         console.warn("Microphone access error, joining listen-only:", err);
         dispatch(
-          setError("Microphone/Camera unavailable, joining in listen-only mode."),
+          setWarning(
+            "Microphone/Camera unavailable, joining in listen-only mode.",
+          ),
         );
         localStreamRef.current = null;
+
+        pc.addTransceiver("audio", { direction: "recvonly" });
+        if (isVideoRef.current) {
+          pc.addTransceiver("video", { direction: "recvonly" });
+        }
       }
 
       try {
@@ -240,8 +268,8 @@ export function useWebRTC() {
 
         socket.emit("webrtc:offer", { to: receiverId || partner?.id, offer });
       } catch (err) {
-         console.error("Error creating or sending offer", err);
-         socket.emit("call:end", { to: receiverId || partner?.id });
+        console.error("Error creating or sending offer", err);
+        socket.emit("call:end", { to: receiverId || partner?.id });
       }
     };
 
@@ -251,7 +279,11 @@ export function useWebRTC() {
     };
 
     const handleWebRTCOffer = async ({ from, offer }: any) => {
-      const pc = createPeerConnection();
+      let pc = pcRef.current;
+      if (!pc || pc.signalingState === "closed") {
+        pc = createPeerConnection();
+      }
+
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
@@ -269,10 +301,15 @@ export function useWebRTC() {
 
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
           } catch (mediaErr) {
-            console.warn("Media access failed, answering without tracks:", mediaErr);
-             dispatch(
-               setError("Microphone/Camera unavailable, joining in listen-only mode."),
-             );
+            console.warn(
+              "Media access failed, answering without tracks:",
+              mediaErr,
+            );
+            dispatch(
+              setWarning(
+                "Microphone/Camera unavailable, joining in listen-only mode.",
+              ),
+            );
           }
         }
 
@@ -364,5 +401,6 @@ export function useWebRTC() {
     cleanup,
     startScreenShare,
     stopScreenShare,
+    remoteStream,
   };
 }

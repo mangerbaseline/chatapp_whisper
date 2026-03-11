@@ -38,6 +38,7 @@ export function CallOverlay() {
     cleanup,
     startScreenShare,
     stopScreenShare,
+    remoteStream,
   } = useWebRTC();
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -47,6 +48,27 @@ export function CallOverlay() {
     typeof navigator !== "undefined" &&
     "mediaDevices" in navigator &&
     "getDisplayMedia" in navigator.mediaDevices;
+
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+
+  useEffect(() => {
+    if (remoteStream) {
+      const checkTracks = () => {
+        setHasRemoteVideo(remoteStream.getVideoTracks().length > 0);
+      };
+
+      checkTracks();
+      
+      remoteStream.addEventListener("addtrack", checkTracks);
+      remoteStream.addEventListener("removetrack", checkTracks);
+      return () => {
+        remoteStream.removeEventListener("addtrack", checkTracks);
+        remoteStream.removeEventListener("removetrack", checkTracks);
+      };
+    } else {
+      setHasRemoteVideo(false);
+    }
+  }, [remoteStream, status, isScreenSharing]);
 
   useEffect(() => {
     if (status === "receiving") {
@@ -129,13 +151,14 @@ export function CallOverlay() {
       <Card
         className={`relative w-full overflow-hidden shadow-2xl bg-card/95 border-primary/20 flex flex-col items-center justify-center transition-all duration-300 ${isFullScreen ? "h-full max-w-none rounded-none" : "max-w-2xl aspect-video rounded-3xl"}`}
       >
-        {/* Remote Video Stream */}
+        {/* Remote Video Stream - Kept mounted to receive tracks, visually hidden if none */}
         {isVideo && status === "ongoing" && (
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
             className={`absolute inset-0 w-full h-full bg-black ${isScreenSharing ? "object-contain" : "object-cover"}`}
+            style={{ display: hasRemoteVideo ? "block" : "none" }}
           />
         )}
 
@@ -157,8 +180,7 @@ export function CallOverlay() {
           </div>
         )}
 
-        {/* User Info Overlay (when no video or status is calling/receiving) */}
-        {(!isVideo || status !== "ongoing") && (
+        {(!isVideo || !hasRemoteVideo || status !== "ongoing") && (
           <div className="flex flex-col items-center gap-6 z-0">
             <div className="relative">
               <Avatar className="h-32 w-32 border-4 border-primary/10 shadow-xl">
@@ -185,7 +207,7 @@ export function CallOverlay() {
                       : "Incoming Voice Call"
                     : status === "ongoing"
                       ? "On Call"
-                      : errorMessage || "Ended"}
+                      : "Ended"}
               </p>
             </div>
           </div>
@@ -294,16 +316,8 @@ export function CallOverlay() {
         </div>
 
         {errorMessage && (
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-destructive/90 text-destructive-foreground rounded-full text-sm font-medium shadow-lg animate-in slide-in-from-top-4">
-            {errorMessage}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => dispatch(endCall())}
-              className="ml-2 h-auto p-0 text-destructive-foreground hover:bg-transparent underline"
-            >
-              Dismiss
-            </Button>
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-destructive/90 text-destructive-foreground rounded-full text-sm font-medium shadow-lg animate-in slide-in-from-top-4 z-50 flex items-center gap-2">
+            <span>{errorMessage}</span>
           </div>
         )}
       </Card>
