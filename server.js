@@ -71,6 +71,7 @@ app.prepare().then(() => {
         lastLoginDate: { type: Date, default: Date.now },
         isDeactivated: { type: Boolean, default: false },
         deactivatedAt: { type: Date, default: null },
+        connections: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       },
       { timestamps: true, strict: false },
     );

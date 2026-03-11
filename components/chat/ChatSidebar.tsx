@@ -17,9 +17,10 @@ import {
   Search,
   Link2,
   X,
-  Users,
   CalendarDays,
   Wallet,
+  LogOut,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import ConversationList from "@/components/chat/ConversationList";
@@ -40,6 +41,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSidebar } from "@/components/ui/sidebar";
+import { clearUser, logout } from "@/redux/features/auth/authSlice";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function ChatSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useDispatch();
@@ -47,9 +51,24 @@ export function ChatSidebar(props: React.ComponentProps<typeof Sidebar>) {
     (state: RootState) => state.chat.selectedConversationId,
   );
   const { isMobile, setOpenMobile } = useSidebar();
+  const router = useRouter();
 
   const handleSelectConversation = (id: string) => {
     dispatch(selectConversation(id));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await dispatch(logout() as any).unwrap();
+      dispatch(clearUser());
+      toast.success("Logged out successfully.");
+      setTimeout(() => {
+        router.push("/auth/sign-in");
+        router.refresh();
+      }, 100);
+    } catch (err: any) {
+      toast.error(err?.message || "Logout failed.");
+    }
   };
 
   return (
@@ -184,6 +203,17 @@ export function ChatSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Settings</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={handleLogout}
+                    className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors cursor-pointer text-muted-foreground"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Logout</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>

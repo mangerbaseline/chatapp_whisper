@@ -206,6 +206,12 @@ const chatSlice = createSlice({
       })
       // Create Conversation
       .addCase(createConversation.fulfilled, (state, action) => {
+        const index = state.conversations.findIndex(
+          (c) => c._id === action.payload._id,
+        );
+        if (index !== -1) {
+          state.conversations.splice(index, 1);
+        }
         state.conversations.unshift(action.payload);
         state.selectedConversationId = action.payload._id;
       })

@@ -28,7 +28,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Search, UserMinus, Users, Loader2 } from "lucide-react";
+import {
+  Search,
+  UserMinus,
+  Users,
+  Loader2,
+  MessageCircle,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useSocket } from "@/components/SocketProvider";
+import { createConversation } from "@/redux/features/chat/chatSlice";
 
 export default function ConnectionsPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -38,6 +47,9 @@ export default function ConnectionsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [startingChatId, setStartingChatId] = useState<string | null>(null);
+  const router = useRouter();
+  const { socket } = useSocket();
 
   useEffect(() => {
     dispatch(fetchConnections());
@@ -47,6 +59,34 @@ export default function ConnectionsPage() {
     setRemovingId(connectionId);
     await dispatch(removeConnection(connectionId));
     setRemovingId(null);
+  };
+
+  const handleStartChat = async (userId: string) => {
+    setStartingChatId(userId);
+    try {
+      const resultAction = await dispatch(
+        createConversation({
+          otherUserId: userId,
+        }),
+      );
+
+      if (createConversation.fulfilled.match(resultAction)) {
+        const conversation = resultAction.payload;
+
+        if (socket) {
+          socket.emit("conversation_created", {
+            conversation: conversation,
+            otherUserId: userId,
+          });
+        }
+
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Failed to start conversation", error);
+    } finally {
+      setStartingChatId(null);
+    }
   };
 
   const filteredConnections = connections.filter((connection: Connection) => {
@@ -139,8 +179,26 @@ export default function ConnectionsPage() {
                 </div>
               </div>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary hover:text-primary/90 font-semibold shrink-0 cursor-pointer"
+                  disabled={startingChatId === connection._id}
+                  onClick={() => handleStartChat(connection._id)}
+                >
+                  {startingChatId === connection._id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <MessageCircle className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Message</span>
+                    </>
+                  )}
+                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -182,6 +240,7 @@ export default function ConnectionsPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </div>
             </CardContent>
           </Card>
         ))}
