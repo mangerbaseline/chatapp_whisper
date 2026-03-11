@@ -43,6 +43,11 @@ export function CallOverlay() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const ringAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  const isScreenShareSupported =
+    typeof navigator !== "undefined" &&
+    "mediaDevices" in navigator &&
+    "getDisplayMedia" in navigator.mediaDevices;
+
   useEffect(() => {
     if (status === "receiving") {
       const audio = new Audio("/ring.mp3");
@@ -241,7 +246,7 @@ export function CallOverlay() {
                   </Button>
                 )}
 
-                {isVideo && (
+                {isVideo && isScreenShareSupported && (
                   <Button
                     onClick={toggleScreenShare}
                     variant="outline"

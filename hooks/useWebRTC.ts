@@ -226,17 +226,22 @@ export function useWebRTC() {
         }
 
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      } catch (err: any) {
+        console.warn("Microphone access error, joining listen-only:", err);
+        dispatch(
+          setError("Microphone/Camera unavailable, joining in listen-only mode."),
+        );
+        localStreamRef.current = null;
+      }
 
+      try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
         socket.emit("webrtc:offer", { to: receiverId || partner?.id, offer });
-      } catch (err: any) {
-        console.error("Microphone access error:", err);
-        dispatch(
-          setError("Could not access microphone. Please check permissions."),
-        );
-        socket.emit("call:end", { to: receiverId || partner?.id });
+      } catch (err) {
+         console.error("Error creating or sending offer", err);
+         socket.emit("call:end", { to: receiverId || partner?.id });
       }
     };
 
@@ -251,17 +256,24 @@ export function useWebRTC() {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
         if (!localStreamRef.current) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: isVideoRef.current,
-          });
-          localStreamRef.current = stream;
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: isVideoRef.current,
+            });
+            localStreamRef.current = stream;
 
-          if (isVideoRef.current && localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
+            if (isVideoRef.current && localVideoRef.current) {
+              localVideoRef.current.srcObject = stream;
+            }
+
+            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+          } catch (mediaErr) {
+            console.warn("Media access failed, answering without tracks:", mediaErr);
+             dispatch(
+               setError("Microphone/Camera unavailable, joining in listen-only mode."),
+             );
           }
-
-          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
         }
 
         const answer = await pc.createAnswer();
