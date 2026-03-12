@@ -19,6 +19,8 @@ interface CallState {
   isVideo: boolean;
   errorMessage: string | null;
   isScreenSharing: boolean;
+  activeMainView: "local" | "remote" | "screen";
+  remoteScreenTrackId: string | null;
 }
 
 const initialState: CallState = {
@@ -28,6 +30,8 @@ const initialState: CallState = {
   isVideo: false,
   errorMessage: null,
   isScreenSharing: false,
+  activeMainView: "remote",
+  remoteScreenTrackId: null,
 };
 
 const callSlice = createSlice({
@@ -78,6 +82,8 @@ const callSlice = createSlice({
       state.isMuted = false;
       state.isVideo = false;
       state.isScreenSharing = false;
+      state.activeMainView = "remote";
+      state.remoteScreenTrackId = null;
     },
     setError: (state, action: PayloadAction<string>) => {
       state.status = "error";
@@ -92,6 +98,20 @@ const callSlice = createSlice({
     setScreenSharing: (state, action: PayloadAction<boolean>) => {
       state.isScreenSharing = action.payload;
     },
+    setActiveMainView: (
+      state,
+      action: PayloadAction<"local" | "remote" | "screen">,
+    ) => {
+      state.activeMainView = action.payload;
+    },
+    setRemoteScreenTrackId: (state, action: PayloadAction<string | null>) => {
+      state.remoteScreenTrackId = action.payload;
+      if (action.payload) {
+        state.activeMainView = "screen";
+      } else if (state.activeMainView === "screen") {
+        state.activeMainView = "remote";
+      }
+    },
   },
 });
 
@@ -104,5 +124,7 @@ export const {
   setWarning,
   toggleMute,
   setScreenSharing,
+  setActiveMainView,
+  setRemoteScreenTrackId,
 } = callSlice.actions;
 export default callSlice.reducer;

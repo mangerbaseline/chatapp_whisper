@@ -259,11 +259,60 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on("webrtc:screen_offer", ({ to, offer }) => {
+      const targetSocketId = userSockets.get(to);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("webrtc:screen_offer", {
+          from: socket.userId,
+          offer,
+        });
+      }
+    });
+
+    socket.on("webrtc:screen_answer", ({ to, answer }) => {
+      const targetSocketId = userSockets.get(to);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("webrtc:screen_answer", {
+          from: socket.userId,
+          answer,
+        });
+      }
+    });
+
+    socket.on("webrtc:screen_ice-candidate", ({ to, candidate }) => {
+      const targetSocketId = userSockets.get(to);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("webrtc:screen_ice-candidate", {
+          from: socket.userId,
+          candidate,
+        });
+      }
+    });
+
     socket.on("call:end", ({ to }) => {
       const targetSocketId = userSockets.get(to);
       if (targetSocketId) {
         console.log(`Call ended by ${socket.userId} with ${to}`);
         io.to(targetSocketId).emit("call:ended", { from: socket.userId });
+      }
+    });
+
+    socket.on("webrtc:screen_started", ({ to, trackId }) => {
+      const targetSocketId = userSockets.get(to);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("webrtc:screen_started", {
+          from: socket.userId,
+          trackId,
+        });
+      }
+    });
+
+    socket.on("webrtc:screen_stopped", ({ to }) => {
+      const targetSocketId = userSockets.get(to);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("webrtc:screen_stopped", {
+          from: socket.userId,
+        });
       }
     });
 
