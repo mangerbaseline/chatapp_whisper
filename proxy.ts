@@ -36,15 +36,16 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  if (
+  const isProtectedRoute =
     pathname.startsWith("/") &&
     !pathname.startsWith("/auth") &&
     !pathname.startsWith("/api") &&
-    !pathname.startsWith("/logo.png")
-  ) {
-    if (!user) {
-      return NextResponse.redirect(new URL("/auth/sign-in", req.url));
-    }
+    !pathname.startsWith("/logo.png") &&
+    !pathname.startsWith("/_next") &&
+    !pathname.startsWith("/favicon.ico");
+
+  if (isProtectedRoute && !user) {
+    return NextResponse.redirect(new URL("/auth/sign-in", req.url));
   }
 
   if (pathname.startsWith("/dashboard")) {
