@@ -36,7 +36,7 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  if (pathname === "/") {
+  if (pathname.startsWith("/") && !pathname.startsWith("/auth")) {
     if (!user) {
       return NextResponse.redirect(new URL("/auth/sign-in", req.url));
     }
