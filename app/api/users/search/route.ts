@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
           { email: { $regex: query, $options: "i" } },
           { firstName: { $regex: query, $options: "i" } },
           { lastName: { $regex: query, $options: "i" } },
+          { mobileNo: { $regex: query, $options: "i" } },
         ],
         $and: [
           {

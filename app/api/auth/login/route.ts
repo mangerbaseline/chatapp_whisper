@@ -48,10 +48,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw parsed.error;
   }
 
-  const { email, password } = parsed.data;
+  const { identifier, password } = parsed.data;
 
   const user = await User.findOne({
-    email,
+    $or: [{ email: identifier }, { mobileNo: identifier }],
   });
 
   if (!user) {
@@ -77,7 +77,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const comparedPassword = await comparePassword(password, user.password!);
 
   if (!comparedPassword) {
-    throw new ApiError(401, "Invalid email or password.");
+    throw new ApiError(401, "Invalid credentials.");
   }
 
   updateLoginStreak(user);
@@ -90,7 +90,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   const loginedUser = {
     _id: user._id,
-    email,
+    email: user.email,
     role: user.role,
     createdAt: user.createdAt,
     firstName: user.firstName,

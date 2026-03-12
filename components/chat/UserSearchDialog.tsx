@@ -32,9 +32,11 @@ import {
   sendInvitation,
   acceptInvitation,
   clearSearchResults,
+  inviteByEmail,
 } from "@/redux/features/connections/connectionsSlice";
 import { createConversation } from "@/redux/features/chat/chatSlice";
 import type { User } from "@/redux/features/connections/connectionsSlice";
+import { toast } from "sonner";
 
 interface UserSearchDialogProps {
   onSelectUser: (conversationId: string) => void;
@@ -50,12 +52,15 @@ export default function UserSearchDialog({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [invitingEmail, setInvitingEmail] = useState(false);
   const { socket } = useSocket();
   const dispatch = useAppDispatch();
   const searchResults = useAppSelector(
     (state) => state.connections.searchResults,
   );
   const loading = useAppSelector((state) => state.connections.loading);
+
+  const isEmail = (val: string) => /^\S+@\S+\.\S+$/.test(val);
 
   useEffect(() => {
     if (open) {
@@ -122,6 +127,19 @@ export default function UserSearchDialog({
       console.error("Failed to send invitation", error);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleInviteByEmail = async () => {
+    if (!isEmail(query)) return;
+    setInvitingEmail(true);
+    try {
+      await dispatch(inviteByEmail(query)).unwrap();
+      toast.success("Invitation sent successfully!");
+    } catch (error: any) {
+      toast.error(error || "Failed to send invitation");
+    } finally {
+      setInvitingEmail(false);
     }
   };
 
@@ -250,7 +268,7 @@ export default function UserSearchDialog({
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email or mobile..."
               className="pl-9"
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
@@ -293,9 +311,28 @@ export default function UserSearchDialog({
                 ))}
               </div>
             ) : query.length >= 2 ? (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                No users found.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-4">
+                <p className="text-sm text-muted-foreground">No users found.</p>
+                {isEmail(query.trim()) && (
+                  <div className="w-full p-4 rounded-xl border bg-muted/30 border-dashed space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      This person isn't on Whispr yet. Want to invite them?
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={handleInviteByEmail}
+                      disabled={invitingEmail}
+                    >
+                      {invitingEmail ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <UserPlus className="h-4 w-4 mr-2" />
+                      )}
+                      Invite to Whispr
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <p className="text-center text-sm text-muted-foreground py-4">
                 Type to search users...

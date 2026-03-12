@@ -17,7 +17,7 @@ export const registerSchema = z
     address: z.string({ error: "Address is required." }),
     mobileNo: z
       .string()
-      .regex(/^[+]?[0-9\s\-().]{7,15}$/, "Please enter a valid mobile number.")
+      .regex(/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number.")
       .optional()
       .or(z.literal("")),
   })
@@ -41,7 +41,15 @@ export const updatePasswordSchema = z
   });
 
 export const loginSchema = z.object({
-  email: z.email({ error: "Please enter a valid email address." }),
+  identifier: z
+    .string({ error: "Email or Mobile Number is required." })
+    .refine(
+      (val) =>
+        z.string().email().safeParse(val).success || /^[0-9]{10}$/.test(val),
+      {
+        message: "Please enter a valid email address or 10-digit mobile number.",
+      },
+    ),
   password: z
     .string({ error: "Password is required." })
     .min(6, "Password must be at least 6 characters long."),
@@ -63,7 +71,7 @@ export const updateSchema = z.object({
     .min(1, "Address must be atleast 10 char long."),
   mobileNo: z
     .string()
-    .regex(/^[+]?[0-9\s\-().]{7,15}$/, "Please enter a valid mobile number.")
+    .regex(/^[0-9]{10}$/, "Please enter a valid 10-digit mobile number.")
     .optional()
     .or(z.literal("")),
 });

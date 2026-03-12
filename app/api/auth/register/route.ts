@@ -39,6 +39,15 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     ]);
   }
 
+  if (mobileNo) {
+    const mobileExists = await User.findOne({ mobileNo });
+    if (mobileExists) {
+      throw new ApiError(409, "Mobile number already exists", [
+        { path: "mobileNo", message: "Mobile number is already registered." },
+      ]);
+    }
+  }
+
   const hashedPassword = await hashPassword(password);
 
   const user = await User.create({

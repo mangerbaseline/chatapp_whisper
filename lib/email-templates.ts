@@ -354,3 +354,37 @@ export const getPasswordResetSuccessEmailTemplate = (name: string) => `
 </body>
 </html>
 `;
+
+export const getInviteEmailTemplate = (inviterName: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #f8fafc; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+    .btn { display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 20px; }
+    h1 { color: #0f172a; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
+      <h1>Join Whispr!</h1>
+    </div>
+    <div class="content">
+      <p>Hello,</p>
+      <p><strong>${inviterName}</strong> has invited you to join **Whispr**, a real-time chat platform where you can connect with friends, make calls, and more.</p>
+      <p>Click the button below to create your account and start chatting!</p>
+      <center>
+        <a href="${process.env.NEXT_PUBLIC_BASE_URL}/auth/sign-up" class="btn">Join Whispr Now</a>
+      </center>
+      <p style="margin-top: 30px; font-size: 14px; color: #64748b;">If you have any questions, feel free to visit our website.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+

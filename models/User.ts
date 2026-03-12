@@ -70,6 +70,7 @@ const UserSchema = new Schema<IUser>(
     mobileNo: {
       type: String,
       trim: true,
+      index: { unique: true, sparse: true },
     },
     otp: {
       type: String,

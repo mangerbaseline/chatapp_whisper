@@ -24,7 +24,7 @@ import { AuthAnimation } from "./auth-animation";
 import Image from "next/image";
 
 type LoginFormState = {
-  email: string;
+  identifier: string;
   password: string;
 };
 
@@ -34,7 +34,7 @@ export function LoginForm() {
   const isLoading = useAppSelector((state) => state.auth.isLoading);
 
   const [formData, setFormData] = useState<LoginFormState>({
-    email: "",
+    identifier: "",
     password: "",
   });
 
@@ -99,20 +99,22 @@ export function LoginForm() {
               </div>
 
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="identifier">
+                  Email or Mobile Number
+                </FieldLabel>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
+                  id="identifier"
+                  name="identifier"
+                  type="text"
+                  value={formData.identifier}
                   onChange={handleChange}
-                  placeholder="m@example.com"
+                  placeholder="m@example.com or 1234567890"
                   required
                 />
                 <FieldDescription>
-                  {errors.email && (
+                  {errors.identifier && (
                     <p className="text-destructive text-xs mt-1">
-                      {errors.email[0]}
+                      {errors.identifier[0]}
                     </p>
                   )}
                 </FieldDescription>

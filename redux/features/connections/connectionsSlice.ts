@@ -149,6 +149,20 @@ export const searchUsers = createAsyncThunk(
   },
 );
 
+export const inviteByEmail = createAsyncThunk(
+  "connections/inviteByEmail",
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const res = await axios.post("/api/users/invite", { email });
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to send invitation",
+      );
+    }
+  },
+);
+
 const connectionsSlice = createSlice({
   name: "connections",
   initialState,

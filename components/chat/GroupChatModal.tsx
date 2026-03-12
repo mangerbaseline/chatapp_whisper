@@ -188,7 +188,7 @@ export default function GroupChatModal({
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search users..."
+                placeholder="Search by name, email or mobile..."
                 className="pl-9"
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}
