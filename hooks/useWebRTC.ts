@@ -82,7 +82,11 @@ export function useWebRTC() {
       };
 
       pc.ontrack = (event) => {
+        console.log(
+          `[WebRTC] Track received: ${event.track.kind} from ${targetUserId}`,
+        );
         const stream = event.streams[0] || new MediaStream([event.track]);
+
         if (isScreen) {
           setRemoteScreenStreams((prev) => ({
             ...prev,
@@ -90,7 +94,25 @@ export function useWebRTC() {
           }));
           dispatch(setRemoteScreenTrackId("active"));
         } else {
-          setRemoteStreams((prev) => ({ ...prev, [targetUserId]: stream }));
+          setRemoteStreams((prev) => {
+            const existingStream = prev[targetUserId];
+            if (existingStream) {
+              if (
+                !existingStream.getTracks().find((t) => t.id === event.track.id)
+              ) {
+                console.log(
+                  `[WebRTC] Adding track ${event.track.kind} to existing stream for ${targetUserId}`,
+                );
+                existingStream.addTrack(event.track);
+              }
+              // Force a new reference to trigger reactivity
+              return { ...prev, [targetUserId]: existingStream };
+            }
+            console.log(
+              `[WebRTC] Creating new stream for ${targetUserId} with track ${event.track.kind}`,
+            );
+            return { ...prev, [targetUserId]: stream };
+          });
           dispatch(setParticipantJoined({ id: targetUserId, joined: true }));
         }
       };
@@ -109,6 +131,9 @@ export function useWebRTC() {
 
     const promise = (async () => {
       try {
+        console.log(
+          `[WebRTC] Requesting local media. isVideo: ${isVideoRef.current}`,
+        );
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
           video: isVideoRef.current,
@@ -116,8 +141,26 @@ export function useWebRTC() {
         localStreamRef.current = stream;
         setLocalStream(stream);
         return stream;
-      } catch (e) {
-        dispatch(setWarning("Media access denied."));
+      } catch (e: any) {
+        console.error(`[WebRTC] getUserMedia failed:`, e);
+        if (isVideoRef.current) {
+          console.warn(`[WebRTC] Fallback to audio-only since video failed.`);
+          try {
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: false,
+            });
+            localStreamRef.current = audioStream;
+            setLocalStream(audioStream);
+            return audioStream;
+          } catch (audioError) {
+            console.error(
+              `[WebRTC] audio-only fallback also failed:`,
+              audioError,
+            );
+          }
+        }
+        dispatch(setWarning("Media access denied or device missing."));
         return null;
       } finally {
         mediaPromiseRef.current = null;
@@ -129,6 +172,10 @@ export function useWebRTC() {
   }, [dispatch]);
 
   const cleanup = useCallback(() => {
+    if (socket && conversationIdRef.current) {
+      socket.emit("call:leave", { conversationId: conversationIdRef.current });
+    }
+
     pcsRef.current.forEach((pc) => pc.close());
     pcsRef.current.clear();
     screenPcsRef.current.forEach((pc) => pc.close());
@@ -148,7 +195,7 @@ export function useWebRTC() {
     setLocalStream(null);
     setLocalScreenStream(null);
     dispatch(endCall());
-  }, [dispatch]);
+  }, [socket, dispatch]);
 
   const addLocalTracksToPc = useCallback((pc: RTCPeerConnection) => {
     if (localStreamRef.current) {
@@ -251,35 +298,54 @@ export function useWebRTC() {
     };
 
     const handleWebRTCOffer = async ({ from, offer }: any) => {
+      console.log(`[WebRTC] Received offer from ${from}`);
       const pc = createPeerConnection(from);
+
+      if ((pc.signalingState as any) === "closed") {
+        console.warn(
+          `[WebRTC] Ignoring offer, PeerConnection for ${from} is closed`,
+        );
+        return;
+      }
+
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
       const stream = await startLocalMedia();
       if (stream) {
         stream.getTracks().forEach((track) => {
-          const senders = pc.getSenders();
-          if (senders.length < stream.getTracks().length) {
-            pc.addTrack(track, stream);
+          if ((pc.signalingState as any) !== "closed") {
+            const senders = pc.getSenders();
+            if (senders.length < stream.getTracks().length) {
+              pc.addTrack(track, stream);
+            }
           }
         });
       }
 
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit("webrtc:answer", { to: from, answer });
+      if (pc.signalingState !== ("closed" as any)) {
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("webrtc:answer", { to: from, answer });
+      }
     };
 
     const handleWebRTCAnswer = async ({ from, answer }: any) => {
+      console.log(`[WebRTC] Received answer from ${from}`);
       const pc = pcsRef.current.get(from);
-      if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      if (pc && (pc.signalingState as any) !== "closed") {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      }
     };
 
     const handleICECandidate = async ({ from, candidate }: any) => {
       const pc = pcsRef.current.get(from);
-      if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      if (pc && (pc.signalingState as any) !== "closed") {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      }
     };
 
     const handlePeerLeft = ({ userId }: any) => {
+      console.log(`[WebRTC] Peer left: ${userId}`);
       const pc = pcsRef.current.get(userId);
       if (pc) {
         pc.close();
@@ -307,6 +373,16 @@ export function useWebRTC() {
       }
     };
 
+    const handleCallRejected = ({ receiverId }: any) => {
+      console.log(`[WebRTC] Call rejected/cancelled by: ${receiverId}`);
+      cleanup();
+    };
+
+    const handleCallEnded = ({ from }: any) => {
+      console.log(`[WebRTC] Call ended by: ${from}`);
+      cleanup();
+    };
+
     socket.on("call:incoming", handleIncomingCall);
     socket.on("call:accepted", handleCallAccepted);
     socket.on("call:peer_joined", handlePeerJoined);
@@ -314,6 +390,8 @@ export function useWebRTC() {
     socket.on("webrtc:answer", handleWebRTCAnswer);
     socket.on("webrtc:ice-candidate", handleICECandidate);
     socket.on("call:peer_left", handlePeerLeft);
+    socket.on("call:rejected", handleCallRejected);
+    socket.on("call:ended", handleCallEnded);
 
     socket.on("webrtc:screen_offer", async ({ from, offer }: any) => {
       const pc = createPeerConnection(from, true);
@@ -358,6 +436,8 @@ export function useWebRTC() {
       socket.off("webrtc:answer", handleWebRTCAnswer);
       socket.off("webrtc:ice-candidate", handleICECandidate);
       socket.off("call:peer_left", handlePeerLeft);
+      socket.off("call:rejected", handleCallRejected);
+      socket.off("call:ended", handleCallEnded);
       socket.off("webrtc:screen_offer");
       socket.off("webrtc:screen_answer");
       socket.off("webrtc:screen_ice-candidate");

@@ -89,9 +89,11 @@ const callSlice = createSlice({
       state.participants = state.participants.filter(
         (p) => p.id !== action.payload,
       );
+      // End the call immediately if no more participants are left
       if (state.participants.length === 0 && state.status === "ongoing") {
         state.status = "idle";
         state.conversationId = null;
+        state.participants = [];
       }
     },
     setParticipantJoined: (

@@ -39,6 +39,7 @@ export function CallOverlay() {
     participants,
     isMuted,
     isVideo,
+    isGroup,
     errorMessage,
     isScreenSharing,
     activeMainView,
@@ -104,7 +105,14 @@ export function CallOverlay() {
   if (status === "idle") return null;
 
   const handleEndCall = () => {
-    socket?.emit("call:leave", { conversationId });
+    if (socket && conversationId) {
+      socket.emit("call:leave", { conversationId });
+
+      // If it's a 1-on-1 call, explicitly tell the other person it ended
+      if (!isGroup && participants[0]) {
+        socket.emit("call:end", { to: participants[0].id });
+      }
+    }
     cleanup();
     dispatch(endCall());
   };
@@ -136,7 +144,10 @@ export function CallOverlay() {
 
   const handleRejectCall = () => {
     if (socket && conversationId) {
-      socket.emit("call:reject", { conversationId });
+      socket.emit("call:reject", {
+        conversationId,
+        callerId: participants[0]?.id,
+      });
     }
     dispatch(endCall());
   };
@@ -186,7 +197,9 @@ export function CallOverlay() {
     }
 
     if (activeMainView === "local") {
-      const showLocalAvatar = !isVideo || isCameraOff || !localStream;
+      const hasLocalVideo =
+        localStream && localStream.getVideoTracks().some((t) => t.enabled);
+      const showLocalAvatar = !isVideo || isCameraOff || !hasLocalVideo;
       return (
         <div className="relative w-full h-full flex items-center justify-center bg-gray-100">
           <video
@@ -223,11 +236,16 @@ export function CallOverlay() {
         <video
           autoPlay
           playsInline
-          muted
           draggable={false}
           className={`absolute inset-0 w-full h-full object-contain ${!hasVideoTrack ? "opacity-0 pointer-events-none" : ""}`}
           ref={(el) => {
-            if (el && stream && el.srcObject !== stream) el.srcObject = stream;
+            if (el && stream && el.srcObject !== stream) {
+              console.log(
+                "[CallOverlay] Attaching stream to main video",
+                focusedId,
+              );
+              el.srcObject = stream;
+            }
           }}
         />
         {!hasVideoTrack && (
@@ -245,11 +263,28 @@ export function CallOverlay() {
       {status === "ongoing" &&
         Object.entries(remoteStreams).map(([userId, stream]) => (
           <audio
-            key={`audio-${userId}`}
+            key={`audio-${userId}-${stream.id}`}
             autoPlay
             playsInline
+            muted={false}
             ref={(el) => {
-              if (el && el.srcObject !== stream) el.srcObject = stream;
+              if (el) {
+                if (el.srcObject !== stream) {
+                  console.log(
+                    `[CallOverlay] Attaching stream to audio element for ${userId}`,
+                    stream.getAudioTracks().length,
+                    "audio tracks",
+                  );
+                  el.srcObject = stream;
+                }
+                el.volume = 1;
+                el.play().catch((err) =>
+                  console.error(
+                    `[CallOverlay] Audio play failed for ${userId}:`,
+                    err,
+                  ),
+                );
+              }
             }}
           />
         ))}
@@ -322,13 +357,15 @@ export function CallOverlay() {
                         playsInline
                         muted
                         draggable={false}
-                        className={`absolute inset-0 w-full h-full object-cover transform -scale-x-100 ${!localStream || isCameraOff ? "hidden" : ""}`}
+                        className={`absolute inset-0 w-full h-full object-cover transform -scale-x-100 ${!localStream || isCameraOff || localStream.getVideoTracks().length === 0 ? "hidden" : ""}`}
                         ref={(el) => {
                           if (el && el.srcObject !== localStream)
                             el.srcObject = localStream;
                         }}
                       />
-                      {(!localStream || isCameraOff) && (
+                      {(!localStream ||
+                        isCameraOff ||
+                        localStream.getVideoTracks().length === 0) && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                           <AvatarFallbackUI
                             name={currentUser?.firstName || "You"}

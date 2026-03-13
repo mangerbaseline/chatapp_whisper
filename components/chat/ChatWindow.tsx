@@ -100,7 +100,11 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
 
     const handleActiveCall = (data: any) => {
       if (data.conversationId === conversationId) {
-        setActiveCallInfo(data);
+        if (data.ended || data.participantCount === 0) {
+          setActiveCallInfo(null);
+        } else {
+          setActiveCallInfo(data);
+        }
       }
     };
 

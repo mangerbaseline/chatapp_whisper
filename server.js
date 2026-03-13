@@ -213,6 +213,14 @@ app.prepare().then(() => {
           participants: new Set([socket.userId]),
         });
 
+        // Broadcast to everyone in the conversation that a call has started
+        io.to(`conversation:${conversationId}`).emit("call:active", {
+          conversationId,
+          isVideo: !!isVideo,
+          isGroup: !!isGroup,
+          participantCount: 1,
+        });
+
         participants.forEach((p) => {
           if (p.id !== socket.userId) {
             const targetSocketId = userSockets.get(p.id);
@@ -239,6 +247,14 @@ app.prepare().then(() => {
       const activeCall = activeCalls.get(conversationId);
       if (activeCall) {
         activeCall.participants.add(socket.userId);
+        
+        // Broadcast updated participant count
+        io.to(`conversation:${conversationId}`).emit("call:active", {
+          conversationId,
+          isVideo: activeCall.isVideo,
+          isGroup: activeCall.isGroup,
+          participantCount: activeCall.participants.size,
+        });
       }
 
       socket.to(`conversation:${conversationId}`).emit("call:peer_joined", {
@@ -277,6 +293,19 @@ app.prepare().then(() => {
         activeCall.participants.delete(socket.userId);
         if (activeCall.participants.size === 0) {
           activeCalls.delete(conversationId);
+          // Broadcast that the call has ended
+          io.to(`conversation:${conversationId}`).emit("call:active", {
+            conversationId,
+            ended: true,
+          });
+        } else {
+          // Broadcast updated participant count
+          io.to(`conversation:${conversationId}`).emit("call:active", {
+            conversationId,
+            isVideo: activeCall.isVideo,
+            isGroup: activeCall.isGroup,
+            participantCount: activeCall.participants.size,
+          });
         }
       }
 
@@ -384,8 +413,20 @@ app.prepare().then(() => {
           socket
             .to(`conversation:${conversationId}`)
             .emit("call:peer_left", { userId: socket.userId });
+            
           if (call.participants.size === 0) {
             activeCalls.delete(conversationId);
+            io.to(`conversation:${conversationId}`).emit("call:active", {
+              conversationId,
+              ended: true,
+            });
+          } else {
+            io.to(`conversation:${conversationId}`).emit("call:active", {
+              conversationId,
+              isVideo: call.isVideo,
+              isGroup: call.isGroup,
+              participantCount: call.participants.size,
+            });
           }
         }
       });
