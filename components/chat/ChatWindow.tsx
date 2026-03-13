@@ -12,11 +12,12 @@ import {
   PhoneCall,
   Video,
   Wallet,
+  Phone,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { initiateCall } from "@/redux/features/chat/callSlice";
+import { initiateCall, acceptCall } from "@/redux/features/chat/callSlice";
 import { fetchBalance } from "@/redux/features/wallet/walletSlice";
 import {
   fetchMessages,
@@ -48,6 +49,13 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const currentUser = useAppSelector((state) => state.auth.user);
   const balance = useAppSelector((state) => state.wallet.balance);
   const { state, isMobile } = useSidebar();
+  const callStatus = useAppSelector((state: any) => state.call.status);
+  const [activeCallInfo, setActiveCallInfo] = useState<{
+    conversationId: string;
+    isVideo: boolean;
+    isGroup: boolean;
+    participantCount: number;
+  } | null>(null);
 
   useEffect(() => {
     dispatch(fetchBalance());
@@ -86,6 +94,28 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       }
     };
   }, [conversationId, socket, isConnected, dispatch]);
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleActiveCall = (data: any) => {
+      if (data.conversationId === conversationId) {
+        setActiveCallInfo(data);
+      }
+    };
+
+    socket.on("call:active", handleActiveCall);
+
+    return () => {
+      socket.off("call:active", handleActiveCall);
+    };
+  }, [socket, isConnected, conversationId]);
+
+  useEffect(() => {
+    if (callStatus === "ongoing" || callStatus === "calling") {
+      setActiveCallInfo(null);
+    }
+  }, [callStatus]);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -262,83 +292,158 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
             </span>
           )}
         </div>
-        {!details.isGroup && (
-          <div className="flex items-center gap-1">
-            {!conversation?.isSupportTicket && (
-              <Link href="/wallet">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full h-9 px-3 transition-colors text-primary hover:bg-primary/10 gap-1.5"
-                >
-                  <Wallet className="h-4 w-4" />
-                  <span className="text-xs font-semibold">
-                    {(balance ?? 0).toLocaleString()}
-                  </span>
-                </Button>
-              </Link>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`rounded-full h-9 w-9 transition-colors ${isOnline ? "text-primary hover:bg-primary/10" : "text-muted-foreground/40 cursor-not-allowed"}`}
-              disabled={!isOnline}
-              onClick={() => {
-                if (otherUser && socket) {
-                  dispatch(
-                    initiateCall({
-                      id: otherUser._id,
-                      name: details.name || "User",
-                      image: details.image,
-                      isVideo: true,
-                    }),
-                  );
-                  socket.emit("call:initiate", {
-                    receiverId: otherUser._id,
-                    callerInfo: {
-                      name:
-                        currentUser?.firstName || currentUser?.email || "User",
-                      image: currentUser?.image,
-                      isVideo: true,
-                    },
-                  });
-                }
-              }}
-            >
-              <Video className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`rounded-full h-9 w-9 transition-colors ${isOnline ? "text-primary hover:bg-primary/10" : "text-muted-foreground/40 cursor-not-allowed"}`}
-              disabled={!isOnline}
-              onClick={() => {
-                if (otherUser && socket) {
-                  dispatch(
-                    initiateCall({
-                      id: otherUser._id,
-                      name: details.name || "User",
-                      image: details.image,
-                      isVideo: false,
-                    }),
-                  );
-                  socket.emit("call:initiate", {
-                    receiverId: otherUser._id,
-                    callerInfo: {
-                      name:
-                        currentUser?.firstName || currentUser?.email || "User",
-                      image: currentUser?.image,
-                      isVideo: false,
-                    },
-                  });
-                }
-              }}
-            >
-              <PhoneCall className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          {!conversation?.isSupportTicket && (
+            <Link href="/wallet">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full h-9 px-3 transition-colors text-primary hover:bg-primary/10 gap-1.5"
+              >
+                <Wallet className="h-4 w-4" />
+                <span className="text-xs font-semibold">
+                  {(balance ?? 0).toLocaleString()}
+                </span>
+              </Button>
+            </Link>
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`rounded-full h-9 w-9 transition-colors ${details.isGroup || isOnline ? "text-primary hover:bg-primary/10" : "text-muted-foreground/40 cursor-not-allowed"}`}
+            disabled={!details.isGroup && !isOnline}
+            onClick={() => {
+              if (conversation && socket) {
+                const participants = conversation.participants
+                  .filter((p) => p._id !== currentUser?._id)
+                  .map((p) => ({
+                    id: p._id,
+                    name: p.firstName || p.email || "User",
+                    image: p.image,
+                  }));
+
+                dispatch(
+                  initiateCall({
+                    conversationId,
+                    participants,
+                    isGroup: !!conversation.isGroup,
+                    isVideo: true,
+                  }),
+                );
+
+                socket.emit("call:initiate", {
+                  conversationId,
+                  participants,
+                  isGroup: !!conversation.isGroup,
+                  isVideo: true,
+                  callerInfo: {
+                    name:
+                      currentUser?.firstName || currentUser?.email || "User",
+                    image: currentUser?.image,
+                  },
+                });
+              }
+            }}
+          >
+            <Video className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`rounded-full h-9 w-9 transition-colors ${details.isGroup || isOnline ? "text-primary hover:bg-primary/10" : "text-muted-foreground/40 cursor-not-allowed"}`}
+            disabled={!details.isGroup && !isOnline}
+            onClick={() => {
+              if (conversation && socket) {
+                const participants = conversation.participants
+                  .filter((p) => p._id !== currentUser?._id)
+                  .map((p) => ({
+                    id: p._id,
+                    name: p.firstName || p.email || "User",
+                    image: p.image,
+                  }));
+
+                dispatch(
+                  initiateCall({
+                    conversationId,
+                    participants,
+                    isGroup: !!conversation.isGroup,
+                    isVideo: false,
+                  }),
+                );
+
+                socket.emit("call:initiate", {
+                  conversationId,
+                  participants,
+                  isGroup: !!conversation.isGroup,
+                  isVideo: false,
+                  callerInfo: {
+                    name:
+                      currentUser?.firstName || currentUser?.email || "User",
+                    image: currentUser?.image,
+                  },
+                });
+              }
+            }}
+          >
+            <PhoneCall className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
+
+      {activeCallInfo && callStatus === "idle" && (
+        <div className="absolute top-[73px] left-0 right-0 z-10 px-4 py-2 bg-green-500/10 border-b border-green-500/20 flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm font-medium text-green-700">
+              A {activeCallInfo.isVideo ? "video" : "voice"} call is in progress
+              {activeCallInfo.participantCount > 0
+                ? ` · ${activeCallInfo.participantCount} participant${activeCallInfo.participantCount > 1 ? "s" : ""}`
+                : ""}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            className="rounded-full bg-green-500 hover:bg-green-600 text-white gap-1.5 h-8 px-4"
+            onClick={() => {
+              if (conversation && socket) {
+                const participants = conversation.participants
+                  .filter((p) => p._id !== currentUser?._id)
+                  .map((p) => ({
+                    id: p._id,
+                    name: p.firstName || p.email || "User",
+                    image: p.image,
+                  }));
+
+                dispatch(
+                  initiateCall({
+                    conversationId,
+                    participants,
+                    isGroup: !!conversation.isGroup,
+                    isVideo: activeCallInfo.isVideo,
+                  }),
+                );
+                dispatch(acceptCall());
+
+                socket.emit("call:join", {
+                  conversationId,
+                  userInfo: {
+                    name:
+                      currentUser?.firstName || currentUser?.email || "User",
+                    image: currentUser?.image,
+                  },
+                });
+
+                setActiveCallInfo(null);
+              }
+            }}
+          >
+            <Phone className="h-3.5 w-3.5" />
+            Join Call
+          </Button>
+        </div>
+      )}
 
       <ScrollArea className="flex-1 h-full w-full">
         <div className="flex flex-col gap-4 pt-24 pb-28 px-4 sm:px-6">

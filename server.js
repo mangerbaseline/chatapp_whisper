@@ -60,6 +60,7 @@ app.prepare().then(() => {
   });
 
   const userSockets = new Map();
+  const activeCalls = new Map();
 
   function getUserModel() {
     const mongoose = require("mongoose");
@@ -105,6 +106,16 @@ app.prepare().then(() => {
       console.log(
         `User ${socket.userId} joined conversation ${conversationId}`,
       );
+
+      const activeCall = activeCalls.get(conversationId);
+      if (activeCall && !activeCall.participants.has(socket.userId)) {
+        socket.emit("call:active", {
+          conversationId,
+          isVideo: activeCall.isVideo,
+          isGroup: activeCall.isGroup,
+          participantCount: activeCall.participants.size,
+        });
+      }
     });
 
     socket.on("leave_conversation", ({ conversationId }) => {
@@ -189,29 +200,59 @@ app.prepare().then(() => {
       },
     );
 
-    socket.on("call:initiate", ({ receiverId, callerInfo }) => {
-      const receiverSocketId = userSockets.get(receiverId);
-      console.log(
-        `[SERVER] call:initiate from ${socket.userId} to ${receiverId}. CallerInfo:`,
-        callerInfo,
-      );
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("call:incoming", {
-          callerId: socket.userId,
-          callerInfo,
+    socket.on(
+      "call:initiate",
+      ({ conversationId, participants, callerInfo, isVideo, isGroup }) => {
+        console.log(
+          `[SERVER] call:initiate in ${conversationId} from ${socket.userId}`,
+        );
+
+        activeCalls.set(conversationId, {
+          isVideo: !!isVideo,
+          isGroup: !!isGroup,
+          participants: new Set([socket.userId]),
         });
-      } else {
-        socket.emit("call:error", { message: "User is offline" });
+
+        participants.forEach((p) => {
+          if (p.id !== socket.userId) {
+            const targetSocketId = userSockets.get(p.id);
+            if (targetSocketId) {
+              io.to(targetSocketId).emit("call:incoming", {
+                conversationId,
+                participants,
+                callerId: socket.userId,
+                callerInfo,
+                isVideo: !!isVideo,
+                isGroup: !!isGroup,
+              });
+            }
+          }
+        });
+      },
+    );
+
+    socket.on("call:join", ({ conversationId, userInfo }) => {
+      console.log(
+        `[SERVER] User ${socket.userId} joined call in ${conversationId}`,
+      );
+
+      const activeCall = activeCalls.get(conversationId);
+      if (activeCall) {
+        activeCall.participants.add(socket.userId);
       }
+
+      socket.to(`conversation:${conversationId}`).emit("call:peer_joined", {
+        userId: socket.userId,
+        userInfo,
+      });
     });
 
-    socket.on("call:accept", ({ callerId, receiverInfo }) => {
+    socket.on("call:accept", ({ conversationId, callerId, receiverInfo }) => {
+      console.log(
+        `[SERVER] Call accepted by ${socket.userId} in ${conversationId}`,
+      );
       const callerSocketId = userSockets.get(callerId);
       if (callerSocketId) {
-        console.log(
-          `Call accepted by ${socket.userId} for caller ${callerId}. ReceiverInfo:`,
-          receiverInfo,
-        );
         io.to(callerSocketId).emit("call:accepted", {
           receiverId: socket.userId,
           receiverInfo,
@@ -219,14 +260,29 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("call:reject", ({ callerId }) => {
-      const callerSocketId = userSockets.get(callerId);
-      if (callerSocketId) {
-        console.log(`Call rejected by ${socket.userId} for caller ${callerId}`);
-        io.to(callerSocketId).emit("call:rejected", {
-          receiverId: socket.userId,
-        });
+    socket.on("call:reject", ({ conversationId, callerId }) => {
+      console.log(`Call rejected by ${socket.userId} in ${conversationId}`);
+      socket.to(`conversation:${conversationId}`).emit("call:rejected", {
+        receiverId: socket.userId,
+      });
+    });
+
+    socket.on("call:leave", ({ conversationId }) => {
+      console.log(
+        `[SERVER] User ${socket.userId} left call in ${conversationId}`,
+      );
+
+      const activeCall = activeCalls.get(conversationId);
+      if (activeCall) {
+        activeCall.participants.delete(socket.userId);
+        if (activeCall.participants.size === 0) {
+          activeCalls.delete(conversationId);
+        }
       }
+
+      socket.to(`conversation:${conversationId}`).emit("call:peer_left", {
+        userId: socket.userId,
+      });
     });
 
     socket.on("webrtc:offer", ({ to, offer }) => {
@@ -319,6 +375,20 @@ app.prepare().then(() => {
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.userId} (${socket.id})`);
       userSockets.delete(socket.userId);
+
+      // Clean up any active calls this user was in
+      activeCalls.forEach((call, conversationId) => {
+        if (call.participants.has(socket.userId)) {
+          call.participants.delete(socket.userId);
+          // Notify remaining participants
+          socket
+            .to(`conversation:${conversationId}`)
+            .emit("call:peer_left", { userId: socket.userId });
+          if (call.participants.size === 0) {
+            activeCalls.delete(conversationId);
+          }
+        }
+      });
 
       io.emit("user_offline", { userId: socket.userId });
     });

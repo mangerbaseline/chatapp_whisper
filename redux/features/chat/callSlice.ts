@@ -8,24 +8,31 @@ export type CallStatus =
   | "ended"
   | "error";
 
+export interface Participant {
+  id: string;
+  name: string;
+  image?: string;
+  isJoined?: boolean;
+}
+
 interface CallState {
   status: CallStatus;
-  partner: {
-    id: string;
-    name: string;
-    image?: string;
-  } | null;
+  conversationId: string | null;
+  participants: Participant[];
+  isGroup: boolean;
   isMuted: boolean;
   isVideo: boolean;
   errorMessage: string | null;
   isScreenSharing: boolean;
-  activeMainView: "local" | "remote" | "screen";
+  activeMainView: "local" | "remote" | "screen" | string;
   remoteScreenTrackId: string | null;
 }
 
 const initialState: CallState = {
   status: "idle",
-  partner: null,
+  conversationId: null,
+  participants: [],
+  isGroup: false,
   isMuted: false,
   isVideo: false,
   errorMessage: null,
@@ -41,44 +48,68 @@ const callSlice = createSlice({
     initiateCall: (
       state,
       action: PayloadAction<{
-        id: string;
-        name: string;
-        image?: string;
+        conversationId: string;
+        participants: Participant[];
+        isGroup: boolean;
         isVideo?: boolean;
       }>,
     ) => {
       state.status = "calling";
-      state.partner = action.payload;
+      state.conversationId = action.payload.conversationId;
+      state.participants = action.payload.participants;
+      state.isGroup = action.payload.isGroup;
       state.isVideo = !!action.payload.isVideo;
       state.errorMessage = null;
     },
     incomingCall: (
       state,
       action: PayloadAction<{
-        id: string;
-        name: string;
-        image?: string;
+        conversationId: string;
+        participants: Participant[];
+        isGroup: boolean;
         isVideo?: boolean;
       }>,
     ) => {
       state.status = "receiving";
-      state.partner = action.payload;
+      state.conversationId = action.payload.conversationId;
+      state.participants = action.payload.participants;
+      state.isGroup = action.payload.isGroup;
       state.isVideo = !!action.payload.isVideo;
     },
-    acceptCall: (
-      state,
-      action: PayloadAction<
-        { id: string; name: string; image?: string } | undefined
-      >,
-    ) => {
+    acceptCall: (state) => {
       state.status = "ongoing";
-      if (action.payload) {
-        state.partner = action.payload;
+    },
+    addParticipant: (state, action: PayloadAction<Participant>) => {
+      const exists = state.participants.find((p) => p.id === action.payload.id);
+      if (!exists) {
+        state.participants.push(action.payload);
+      }
+    },
+    removeParticipant: (state, action: PayloadAction<string>) => {
+      state.participants = state.participants.filter(
+        (p) => p.id !== action.payload,
+      );
+      if (state.participants.length === 0 && state.status === "ongoing") {
+        state.status = "idle";
+        state.conversationId = null;
+      }
+    },
+    setParticipantJoined: (
+      state,
+      action: PayloadAction<{ id: string; joined: boolean }>,
+    ) => {
+      const participant = state.participants.find(
+        (p) => p.id === action.payload.id,
+      );
+      if (participant) {
+        participant.isJoined = action.payload.joined;
       }
     },
     endCall: (state) => {
       state.status = "idle";
-      state.partner = null;
+      state.conversationId = null;
+      state.participants = [];
+      state.isGroup = false;
       state.isMuted = false;
       state.isVideo = false;
       state.isScreenSharing = false;
@@ -100,7 +131,7 @@ const callSlice = createSlice({
     },
     setActiveMainView: (
       state,
-      action: PayloadAction<"local" | "remote" | "screen">,
+      action: PayloadAction<"local" | "remote" | "screen" | string>,
     ) => {
       state.activeMainView = action.payload;
     },
@@ -119,6 +150,9 @@ export const {
   initiateCall,
   incomingCall,
   acceptCall,
+  addParticipant,
+  removeParticipant,
+  setParticipantJoined,
   endCall,
   setError,
   setWarning,
