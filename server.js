@@ -470,6 +470,13 @@ app.prepare().then(() => {
       });
     });
 
+    socket.on("message_reaction", ({ conversationId, messageId, reactions }) => {
+      socket.to(`conversation:${conversationId}`).emit("reaction_updated", {
+        messageId,
+        reactions,
+      });
+    });
+
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.userId} (${socket.id})`);
       userSockets.delete(socket.userId);

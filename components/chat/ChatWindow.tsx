@@ -18,8 +18,10 @@ import {
   PinOff,
   Copy,
   Trash2,
+  Smile,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
+import ReactionPicker from "./ReactionPicker";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { initiateCall, acceptCall } from "@/redux/features/chat/callSlice";
@@ -32,6 +34,8 @@ import {
   setPinnedMessage,
   deleteMessage,
   deleteMessageApi,
+  toggleReaction,
+  updateMessageReaction,
 } from "@/redux/features/chat/chatSlice";
 import type { Attachment } from "@/redux/features/chat/chatSlice";
 import Link from "next/link";
@@ -188,16 +192,28 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       dispatch(deleteMessage(messageId));
     };
 
+    const handleReactionUpdated = ({
+      messageId,
+      reactions,
+    }: {
+      messageId: string;
+      reactions: any[];
+    }) => {
+      dispatch(updateMessageReaction({ messageId, reactions }));
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
     socket.on("pinned_message_updated", handlePinnedMessageUpdate);
     socket.on("message_deleted", handleMessageDeleted);
+    socket.on("reaction_updated", handleReactionUpdated);
 
     return () => {
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
       socket.off("pinned_message_updated", handlePinnedMessageUpdate);
       socket.off("message_deleted", handleMessageDeleted);
+      socket.off("reaction_updated", handleReactionUpdated);
     };
   }, [socket, isConnected, conversationId, dispatch]);
 
@@ -253,6 +269,24 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const handleTyping = (isTyping: boolean) => {
     if (socket && isConnected) {
       socket.emit("typing", { conversationId, isTyping });
+    }
+  };
+
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    try {
+      const resultAction = await dispatch(
+        toggleReaction({ conversationId, messageId, emoji }),
+      ).unwrap();
+
+      if (socket && isConnected) {
+        socket.emit("message_reaction", {
+          conversationId,
+          messageId,
+          reactions: resultAction.reactions,
+        });
+      }
+    } catch (error: any) {
+      toast.error(error || "Failed to update reaction");
     }
   };
 
@@ -626,97 +660,137 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                       )}
                     </div>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn(
-                            "h-6 w-6 shrink-0 transition-opacity",
-                            msg.isPinned
-                              ? "opacity-100 text-primary hover:bg-primary/10"
-                              : cn(
-                                  "opacity-0 group-hover/msg:opacity-100 text-muted-foreground hover:bg-accent",
-                                  isMobile && "opacity-100",
-                                ),
-                          )}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align={isMe ? "end" : "start"}>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            if (msg.text) {
-                              navigator.clipboard.writeText(msg.text);
-                              toast.success("Message copied to clipboard");
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-6 w-6 shrink-0 transition-opacity",
+                              msg.isPinned
+                                ? "opacity-100 text-primary hover:bg-primary/10"
+                                : cn(
+                                    "opacity-0 group-hover/msg:opacity-100 text-muted-foreground hover:bg-accent",
+                                    isMobile && "opacity-100",
+                                  ),
+                            )}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align={isMe ? "end" : "start"}>
+                          <ReactionPicker
+                            onSelect={(emoji) =>
+                              handleToggleReaction(msg._id, emoji)
                             }
-                          }}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Text
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            if (socket) {
-                              socket.emit("pin_message", {
-                                conversationId,
-                                messageId: msg._id,
-                                isPinned: !msg.isPinned,
-                              });
-                            }
-                          }}
-                        >
-                          {msg.isPinned ? (
-                            <>
-                              <PinOff className="h-4 w-4 mr-2" />
-                              Unpin Message
-                            </>
-                          ) : (
-                            <>
-                              <Pin className="h-4 w-4 mr-2" />
-                              Pin Message
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        {isMe && (
+                            isSubMenu={true}
+                          />
                           <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={async () => {
-                              if (
-                                confirm(
-                                  "Are you sure you want to delete this message?",
-                                )
-                              ) {
-                                try {
-                                  await dispatch(
-                                    deleteMessageApi({
-                                      conversationId,
-                                      messageId: msg._id,
-                                    }),
-                                  ).unwrap();
-
-                                  if (socket) {
-                                    socket.emit("delete_message", {
-                                      conversationId,
-                                      messageId: msg._id,
-                                    });
-                                  }
-                                } catch (err: any) {
-                                  toast.error(
-                                    err || "Failed to delete message",
-                                  );
-                                }
+                            onClick={() => {
+                              if (msg.text) {
+                                navigator.clipboard.writeText(msg.text);
+                                toast.success("Message copied to clipboard");
                               }
                             }}
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Message
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Text
                           </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (socket) {
+                                socket.emit("pin_message", {
+                                  conversationId,
+                                  messageId: msg._id,
+                                  isPinned: !msg.isPinned,
+                                });
+                              }
+                            }}
+                          >
+                            {msg.isPinned ? (
+                              <>
+                                <PinOff className="h-4 w-4 mr-2" />
+                                Unpin Message
+                              </>
+                            ) : (
+                              <>
+                                <Pin className="h-4 w-4 mr-2" />
+                                Pin Message
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          {isMe && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={async () => {
+                                if (
+                                  confirm(
+                                    "Are you sure you want to delete this message?",
+                                  )
+                                ) {
+                                  try {
+                                    await dispatch(
+                                      deleteMessageApi({
+                                        conversationId,
+                                        messageId: msg._id,
+                                      }),
+                                    ).unwrap();
+
+                                    if (socket) {
+                                      socket.emit("delete_message", {
+                                        conversationId,
+                                        messageId: msg._id,
+                                      });
+                                    }
+                                  } catch (err: any) {
+                                    toast.error(
+                                      err || "Failed to delete message",
+                                    );
+                                  }
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Message
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
+
+                  {msg.reactions && msg.reactions.length > 0 && (
+                    <div
+                      className={cn(
+                        "flex flex-wrap gap-1 mt-1 px-1",
+                        isMe ? "justify-end" : "justify-start",
+                      )}
+                    >
+                      {msg.reactions.map((reaction, i) => (
+                        <button
+                          key={i}
+                          onClick={() =>
+                            handleToggleReaction(msg._id, reaction.emoji)
+                          }
+                          className={cn(
+                            "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
+                            reaction.users.includes(currentUser?._id || "")
+                              ? "bg-primary/10 border-primary/30 text-primary"
+                              : "bg-background/50 border-border/50 hover:bg-accent",
+                          )}
+                        >
+                          <span>{reaction.emoji}</span>
+                          {reaction.users.length > 1 && (
+                            <span className="font-medium">
+                              {reaction.users.length}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <span
                     className={`text-[10px] text-muted-foreground/60 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isMe ? "text-right" : "text-left"}`}
                   >

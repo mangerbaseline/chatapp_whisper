@@ -24,6 +24,10 @@ export interface Message {
   createdAt: string;
   isRead: boolean;
   isPinned?: boolean;
+  reactions?: {
+    emoji: string;
+    users: string[];
+  }[];
 }
 
 export interface Conversation {
@@ -159,15 +163,44 @@ export const fetchConversationDetails = createAsyncThunk(
 export const deleteMessageApi = createAsyncThunk(
   "chat/deleteMessageApi",
   async (
-    { conversationId, messageId }: { conversationId: string; messageId: string },
+    {
+      conversationId,
+      messageId,
+    }: { conversationId: string; messageId: string },
     { rejectWithValue },
   ) => {
     try {
-      await axios.delete(`/api/conversations/${conversationId}/messages/${messageId}`);
+      await axios.delete(
+        `/api/conversations/${conversationId}/messages/${messageId}`,
+      );
       return messageId;
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete message",
+      );
+    }
+  },
+);
+
+export const toggleReaction = createAsyncThunk(
+  "chat/toggleReaction",
+  async (
+    {
+      conversationId,
+      messageId,
+      emoji,
+    }: { conversationId: string; messageId: string; emoji: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      const res = await axios.patch(
+        `/api/conversations/${conversationId}/messages/${messageId}/react`,
+        { emoji },
+      );
+      return res.data.data as Message;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to toggle reaction",
       );
     }
   },
@@ -218,6 +251,17 @@ const chatSlice = createSlice({
       state.messages = state.messages.filter((m) => m._id !== action.payload);
       if (state.pinnedMessageId === action.payload) {
         state.pinnedMessageId = null;
+      }
+    },
+    updateMessageReaction: (
+      state,
+      action: PayloadAction<{ messageId: string; reactions: any[] }>,
+    ) => {
+      const index = state.messages.findIndex(
+        (m) => m._id === action.payload.messageId,
+      );
+      if (index !== -1) {
+        state.messages[index].reactions = action.payload.reactions;
       }
     },
   },
@@ -280,10 +324,23 @@ const chatSlice = createSlice({
           state.pinnedMessageId = null;
         }
       })
-      .addCase(deleteMessageApi.fulfilled, (state, action: PayloadAction<string>) => {
-        state.messages = state.messages.filter((m) => m._id !== action.payload);
-        if (state.pinnedMessageId === action.payload) {
-          state.pinnedMessageId = null;
+      .addCase(
+        deleteMessageApi.fulfilled,
+        (state, action: PayloadAction<string>) => {
+          state.messages = state.messages.filter(
+            (m) => m._id !== action.payload,
+          );
+          if (state.pinnedMessageId === action.payload) {
+            state.pinnedMessageId = null;
+          }
+        },
+      )
+      .addCase(toggleReaction.fulfilled, (state, action) => {
+        const index = state.messages.findIndex(
+          (m) => m._id === action.payload._id,
+        );
+        if (index !== -1) {
+          state.messages[index] = action.payload;
         }
       });
   },
@@ -296,5 +353,6 @@ export const {
   updateConversation,
   setPinnedMessage,
   deleteMessage,
+  updateMessageReaction,
 } = chatSlice.actions;
 export default chatSlice.reducer;
