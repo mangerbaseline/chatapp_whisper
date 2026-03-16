@@ -13,6 +13,11 @@ import {
   Video,
   Wallet,
   Phone,
+  MoreVertical,
+  Pin,
+  PinOff,
+  Copy,
+  Trash2,
 } from "lucide-react";
 import MessageInput from "./MessageInput";
 import { format } from "date-fns";
@@ -25,10 +30,20 @@ import {
   sendMessage,
   addMessage,
   setPinnedMessage,
+  deleteMessage,
+  deleteMessageApi,
 } from "@/redux/features/chat/chatSlice";
 import type { Attachment } from "@/redux/features/chat/chatSlice";
 import Link from "next/link";
 import axios from "axios";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -169,14 +184,20 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       });
     };
 
+    const handleMessageDeleted = ({ messageId }: { messageId: string }) => {
+      dispatch(deleteMessage(messageId));
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
     socket.on("pinned_message_updated", handlePinnedMessageUpdate);
+    socket.on("message_deleted", handleMessageDeleted);
 
     return () => {
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
       socket.off("pinned_message_updated", handlePinnedMessageUpdate);
+      socket.off("message_deleted", handleMessageDeleted);
     };
   }, [socket, isConnected, conversationId, dispatch]);
 
@@ -605,24 +626,96 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                       )}
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-6 w-6 shrink-0 transition-opacity ${msg.isPinned ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"}`}
-                      onClick={() => {
-                        if (socket) {
-                          socket.emit("pin_message", {
-                            conversationId,
-                            messageId: msg._id,
-                            isPinned: !msg.isPinned,
-                          });
-                        }
-                      }}
-                    >
-                      <span className="text-[10px]">
-                        {msg.isPinned ? "📍" : "📌"}
-                      </span>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6 shrink-0 transition-opacity",
+                            msg.isPinned
+                              ? "opacity-100 text-primary hover:bg-primary/10"
+                              : cn(
+                                  "opacity-0 group-hover/msg:opacity-100 text-muted-foreground hover:bg-accent",
+                                  isMobile && "opacity-100",
+                                ),
+                          )}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align={isMe ? "end" : "start"}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (msg.text) {
+                              navigator.clipboard.writeText(msg.text);
+                              toast.success("Message copied to clipboard");
+                            }
+                          }}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Text
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (socket) {
+                              socket.emit("pin_message", {
+                                conversationId,
+                                messageId: msg._id,
+                                isPinned: !msg.isPinned,
+                              });
+                            }
+                          }}
+                        >
+                          {msg.isPinned ? (
+                            <>
+                              <PinOff className="h-4 w-4 mr-2" />
+                              Unpin Message
+                            </>
+                          ) : (
+                            <>
+                              <Pin className="h-4 w-4 mr-2" />
+                              Pin Message
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        {isMe && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={async () => {
+                              if (
+                                confirm(
+                                  "Are you sure you want to delete this message?",
+                                )
+                              ) {
+                                try {
+                                  await dispatch(
+                                    deleteMessageApi({
+                                      conversationId,
+                                      messageId: msg._id,
+                                    }),
+                                  ).unwrap();
+
+                                  if (socket) {
+                                    socket.emit("delete_message", {
+                                      conversationId,
+                                      messageId: msg._id,
+                                    });
+                                  }
+                                } catch (err: any) {
+                                  toast.error(
+                                    err || "Failed to delete message",
+                                  );
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Message
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <span
                     className={`text-[10px] text-muted-foreground/60 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isMe ? "text-right" : "text-left"}`}

@@ -464,6 +464,12 @@ app.prepare().then(() => {
       },
     );
 
+    socket.on("delete_message", ({ conversationId, messageId }) => {
+      socket.to(`conversation:${conversationId}`).emit("message_deleted", {
+        messageId,
+      });
+    });
+
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.userId} (${socket.id})`);
       userSockets.delete(socket.userId);

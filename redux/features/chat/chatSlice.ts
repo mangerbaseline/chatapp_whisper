@@ -156,6 +156,23 @@ export const fetchConversationDetails = createAsyncThunk(
   },
 );
 
+export const deleteMessageApi = createAsyncThunk(
+  "chat/deleteMessageApi",
+  async (
+    { conversationId, messageId }: { conversationId: string; messageId: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      await axios.delete(`/api/conversations/${conversationId}/messages/${messageId}`);
+      return messageId;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete message",
+      );
+    }
+  },
+);
+
 const chatSlice = createSlice({
   name: "chat",
   initialState,
@@ -196,6 +213,12 @@ const chatSlice = createSlice({
         ...m,
         isPinned: m._id === action.payload,
       }));
+    },
+    deleteMessage: (state, action: PayloadAction<string>) => {
+      state.messages = state.messages.filter((m) => m._id !== action.payload);
+      if (state.pinnedMessageId === action.payload) {
+        state.pinnedMessageId = null;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -256,6 +279,12 @@ const chatSlice = createSlice({
         } else {
           state.pinnedMessageId = null;
         }
+      })
+      .addCase(deleteMessageApi.fulfilled, (state, action: PayloadAction<string>) => {
+        state.messages = state.messages.filter((m) => m._id !== action.payload);
+        if (state.pinnedMessageId === action.payload) {
+          state.pinnedMessageId = null;
+        }
       });
   },
 });
@@ -266,5 +295,6 @@ export const {
   addMessage,
   updateConversation,
   setPinnedMessage,
+  deleteMessage,
 } = chatSlice.actions;
 export default chatSlice.reducer;
