@@ -14,6 +14,7 @@ import {
   removeParticipant,
   setParticipantJoined,
 } from "@/redux/features/chat/callSlice";
+import { RootState } from "@/redux/store";
 
 export function useWebRTC() {
   const { socket, isConnected } = useSocket();
@@ -21,7 +22,7 @@ export function useWebRTC() {
   const { conversationId, isMuted, isVideo } = useAppSelector(
     (state) => state.call,
   );
-  const currentUser = useAppSelector((state) => state.auth.user);
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
 
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const screenPcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -68,6 +69,13 @@ export function useWebRTC() {
           },
         ],
       });
+
+      if (!isScreen) {
+        if (isVideoRef.current) {
+          pc.addTransceiver("video", { direction: "sendrecv" });
+        }
+        pc.addTransceiver("audio", { direction: "sendrecv" });
+      }
 
       pc.onicecandidate = (event) => {
         if (event.candidate && socket) {
