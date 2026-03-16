@@ -19,7 +19,9 @@ export async function GET(
     const conversation = await Conversation.findOne({
       _id: paramsId,
       participants: userId,
-    }).populate("participants", "email firstName lastName image");
+    })
+      .populate("participants", "email firstName lastName image")
+      .populate("pinnedMessage");
 
     if (!conversation) {
       return NextResponse.json(

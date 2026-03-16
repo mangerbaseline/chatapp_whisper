@@ -41,6 +41,7 @@ export async function proxy(req: NextRequest) {
     !pathname.startsWith("/auth") &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/logo.png") &&
+    !pathname.startsWith("/textLogo.png") &&
     !pathname.startsWith("/_next") &&
     !pathname.startsWith("/favicon.ico");
 

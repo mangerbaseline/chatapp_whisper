@@ -24,6 +24,7 @@ import {
   fetchConversationDetails,
   sendMessage,
   addMessage,
+  setPinnedMessage,
 } from "@/redux/features/chat/chatSlice";
 import type { Attachment } from "@/redux/features/chat/chatSlice";
 import Link from "next/link";
@@ -34,6 +35,7 @@ interface ChatWindowProps {
 }
 
 import { useSidebar } from "@/components/ui/sidebar";
+import { RootState } from "@/redux/store";
 
 export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const dispatch = useAppDispatch();
@@ -46,10 +48,11 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
   const { socket, isConnected, onlineUsers } = useSocket();
-  const currentUser = useAppSelector((state) => state.auth.user);
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
   const balance = useAppSelector((state) => state.wallet.balance);
   const { state, isMobile } = useSidebar();
   const callStatus = useAppSelector((state: any) => state.call.status);
+  const pinnedMessageId = useAppSelector((state) => state.chat.pinnedMessageId);
   const [activeCallInfo, setActiveCallInfo] = useState<{
     conversationId: string;
     isVideo: boolean;
@@ -124,6 +127,16 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
+    const handlePinnedMessageUpdate = ({
+      messageId,
+      isPinned,
+    }: {
+      messageId: string | null;
+      isPinned: boolean;
+    }) => {
+      dispatch(setPinnedMessage(isPinned ? messageId : null));
+    };
+
     const handleNewMessage = (message: any) => {
       dispatch(addMessage(message));
       setTimeout(scrollToBottom, 100);
@@ -158,10 +171,12 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
 
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
+    socket.on("pinned_message_updated", handlePinnedMessageUpdate);
 
     return () => {
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
+      socket.off("pinned_message_updated", handlePinnedMessageUpdate);
     };
   }, [socket, isConnected, conversationId, dispatch]);
 
@@ -219,6 +234,8 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       socket.emit("typing", { conversationId, isTyping });
     }
   };
+
+  const pinnedMessage = messages.find((m) => m._id === pinnedMessageId);
 
   if (loading && messages.length === 0) {
     return (
@@ -397,13 +414,14 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       </div>
 
       {activeCallInfo && callStatus === "idle" && (
-        <div className="absolute top-[73px] left-0 right-0 z-10 px-4 py-2 bg-green-500/10 border-b border-green-500/20 flex items-center justify-between animate-in slide-in-from-top-2">
+        <div className="absolute left-0 right-0 bottom-17 z-50 px-4 py-2 bg-green-500/10 border border-green-500/20 flex items-center justify-between animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-sm font-medium text-green-700">
-              A {activeCallInfo.isVideo ? "video" : "voice"} call is in progress
-              {activeCallInfo.participantCount > 0
-                ? ` · ${activeCallInfo.participantCount} participant${activeCallInfo.participantCount > 1 ? "s" : ""}`
+              A {activeCallInfo?.isVideo ? "video" : "voice"} call is in
+              progress
+              {activeCallInfo?.participantCount > 0
+                ? ` · ${activeCallInfo?.participantCount} participant${activeCallInfo?.participantCount > 1 ? "s" : ""}`
                 : ""}
             </span>
           </div>
@@ -425,7 +443,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                     conversationId,
                     participants,
                     isGroup: !!conversation.isGroup,
-                    isVideo: activeCallInfo.isVideo,
+                    isVideo: activeCallInfo?.isVideo,
                   }),
                 );
                 dispatch(acceptCall());
@@ -445,6 +463,38 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
           >
             <Phone className="h-3.5 w-3.5" />
             Join Call
+          </Button>
+        </div>
+      )}
+
+      {pinnedMessage && (
+        <div className="mx-4 mt-20 mb-[-70px] z-10 p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="h-8 w-1 bg-primary rounded-full shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                Pinned Message
+              </span>
+              <p className="text-xs text-muted-foreground truncate italic">
+                "{pinnedMessage.text}"
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-[10px] h-7 px-2"
+            onClick={() => {
+              if (socket) {
+                socket.emit("pin_message", {
+                  conversationId,
+                  messageId: pinnedMessageId,
+                  isPinned: false,
+                });
+              }
+            }}
+          >
+            Unpin
           </Button>
         </div>
       )}
@@ -496,62 +546,83 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                   }`}
                 >
                   <div
-                    className={`px-5 py-2.5 text-sm shadow-sm backdrop-blur-sm transition-all duration-200 ${
+                    className={`px-5 py-2.5 text-sm shadow-sm backdrop-blur-sm transition-all duration-200 flex items-center gap-2 group/msg ${
                       isMe
                         ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm hover:brightness-110"
                         : "bg-card border border-border/50 text-card-foreground rounded-2xl rounded-tl-sm hover:bg-accent/50"
                     }`}
                   >
-                    {msg.attachments && msg.attachments.length > 0 && (
-                      <div className="flex flex-col gap-2 mb-2">
-                        {msg.attachments.map((attachment, i) => (
-                          <div
-                            key={i}
-                            className="rounded-lg overflow-hidden border border-border/20 bg-background/5"
-                          >
-                            {attachment.type.startsWith("image/") ? (
-                              <img
-                                src={attachment.url}
-                                alt={attachment.name}
-                                className="max-w-full max-h-60 object-contain cursor-pointer transition-transform hover:scale-[1.02]"
-                                onClick={() =>
-                                  window.open(attachment.url, "_blank")
-                                }
-                              />
-                            ) : attachment.type.startsWith("video/") ? (
-                              <video
-                                src={attachment.url}
-                                controls
-                                className="max-w-full max-h-60 rounded-md"
-                              />
-                            ) : (
-                              <a
-                                href={attachment.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-3 p-3 bg-background transition-colors text-secondary"
-                              >
-                                <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                  <FileText className="h-5 w-5" />
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-xs font-medium truncate">
-                                    {attachment.name}
-                                  </span>
-                                  <span className="text-[10px] opacity-70">
-                                    {(attachment.size / 1024).toFixed(1)} KB
-                                  </span>
-                                </div>
-                                <Download className="h-4 w-4 ml-auto opacity-0 group-hover/file:opacity-100 transition-opacity" />
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {msg.text && (
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
-                    )}
+                    <div className="flex-1">
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="flex flex-col gap-2 mb-2">
+                          {msg.attachments.map((attachment, i) => (
+                            <div
+                              key={i}
+                              className="rounded-lg overflow-hidden border border-border/20 bg-background/5"
+                            >
+                              {attachment.type.startsWith("image/") ? (
+                                <img
+                                  src={attachment.url}
+                                  alt={attachment.name}
+                                  className="max-w-full max-h-60 object-contain cursor-pointer transition-transform hover:scale-[1.02]"
+                                  onClick={() =>
+                                    window.open(attachment.url, "_blank")
+                                  }
+                                />
+                              ) : attachment.type.startsWith("video/") ? (
+                                <video
+                                  src={attachment.url}
+                                  controls
+                                  className="max-w-full max-h-60 rounded-md"
+                                />
+                              ) : (
+                                <a
+                                  href={attachment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-3 p-3 bg-background transition-colors text-secondary"
+                                >
+                                  <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <FileText className="h-5 w-5" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-xs font-medium truncate">
+                                      {attachment.name}
+                                    </span>
+                                    <span className="text-[10px] opacity-70">
+                                      {(attachment.size / 1024).toFixed(1)} KB
+                                    </span>
+                                  </div>
+                                  <Download className="h-4 w-4 ml-auto opacity-0 group-hover/file:opacity-100 transition-opacity" />
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {msg.text && (
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-6 w-6 shrink-0 transition-opacity ${msg.isPinned ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"}`}
+                      onClick={() => {
+                        if (socket) {
+                          socket.emit("pin_message", {
+                            conversationId,
+                            messageId: msg._id,
+                            isPinned: !msg.isPinned,
+                          });
+                        }
+                      }}
+                    >
+                      <span className="text-[10px]">
+                        {msg.isPinned ? "📍" : "📌"}
+                      </span>
+                    </Button>
                   </div>
                   <span
                     className={`text-[10px] text-muted-foreground/60 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isMe ? "text-right" : "text-left"}`}

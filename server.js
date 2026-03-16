@@ -79,6 +79,23 @@ app.prepare().then(() => {
     return mongoose.model("User", UserSchema);
   }
 
+  function getMessageModel() {
+    const mongoose = require("mongoose");
+    if (mongoose.models.Message) return mongoose.models.Message;
+    const MessageSchema = new mongoose.Schema(
+      {
+        conversationId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Conversation",
+        },
+        isPinned: { type: Boolean, default: false },
+        text: String,
+      },
+      { timestamps: true, strict: false },
+    );
+    return mongoose.model("Message", MessageSchema);
+  }
+
   io.on("connection", async (socket) => {
     console.log(`User connected: ${socket.userId} (${socket.id})`);
 
@@ -247,7 +264,7 @@ app.prepare().then(() => {
       const activeCall = activeCalls.get(conversationId);
       if (activeCall) {
         activeCall.participants.add(socket.userId);
-        
+
         // Broadcast updated participant count
         io.to(`conversation:${conversationId}`).emit("call:active", {
           conversationId,
@@ -401,6 +418,52 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on(
+      "pin_message",
+      async ({ conversationId, messageId, isPinned }) => {
+        try {
+          const MessageModel = getMessageModel();
+          const mongoose = require("mongoose");
+          const ConversationModel = mongoose.models.Conversation;
+
+          if (isPinned) {
+            await MessageModel.updateMany(
+              { conversationId, isPinned: true },
+              { isPinned: false },
+            );
+
+            await MessageModel.findByIdAndUpdate(messageId, { isPinned: true });
+
+            if (ConversationModel) {
+              await ConversationModel.findByIdAndUpdate(conversationId, {
+                pinnedMessage: messageId,
+              });
+            }
+          } else {
+            await MessageModel.findByIdAndUpdate(messageId, {
+              isPinned: false,
+            });
+
+            if (ConversationModel) {
+              await ConversationModel.findByIdAndUpdate(conversationId, {
+                $unset: { pinnedMessage: 1 },
+              });
+            }
+          }
+
+          io.to(`conversation:${conversationId}`).emit(
+            "pinned_message_updated",
+            {
+              messageId: isPinned ? messageId : null,
+              isPinned,
+            },
+          );
+        } catch (err) {
+          console.error("Pin message error:", err);
+        }
+      },
+    );
+
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.userId} (${socket.id})`);
       userSockets.delete(socket.userId);
@@ -413,7 +476,7 @@ app.prepare().then(() => {
           socket
             .to(`conversation:${conversationId}`)
             .emit("call:peer_left", { userId: socket.userId });
-            
+
           if (call.participants.size === 0) {
             activeCalls.delete(conversationId);
             io.to(`conversation:${conversationId}`).emit("call:active", {

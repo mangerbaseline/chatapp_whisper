@@ -23,6 +23,7 @@ export interface Message {
   attachments?: Attachment[];
   createdAt: string;
   isRead: boolean;
+  isPinned?: boolean;
 }
 
 export interface Conversation {
@@ -37,6 +38,7 @@ export interface Conversation {
   name?: string;
   groupAdmin?: string;
   isSupportTicket?: boolean;
+  pinnedMessage?: Message;
 }
 
 interface ChatState {
@@ -47,6 +49,7 @@ interface ChatState {
   loading: boolean;
   messagesLoading: boolean;
   error: string | null;
+  pinnedMessageId: string | null;
 }
 
 const initialState: ChatState = {
@@ -57,6 +60,7 @@ const initialState: ChatState = {
   loading: false,
   messagesLoading: false,
   error: null,
+  pinnedMessageId: null,
 };
 
 export const fetchConversations = createAsyncThunk(
@@ -186,6 +190,13 @@ const chatSlice = createSlice({
         state.conversations.unshift(action.payload);
       }
     },
+    setPinnedMessage: (state, action: PayloadAction<string | null>) => {
+      state.pinnedMessageId = action.payload;
+      state.messages = state.messages.map((m) => ({
+        ...m,
+        isPinned: m._id === action.payload,
+      }));
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -240,6 +251,11 @@ const chatSlice = createSlice({
       // Fetch Conversation Details
       .addCase(fetchConversationDetails.fulfilled, (state, action) => {
         state.currentConversation = action.payload;
+        if (action.payload.pinnedMessage) {
+          state.pinnedMessageId = action.payload.pinnedMessage._id;
+        } else {
+          state.pinnedMessageId = null;
+        }
       });
   },
 });
@@ -249,5 +265,6 @@ export const {
   clearSelection,
   addMessage,
   updateConversation,
+  setPinnedMessage,
 } = chatSlice.actions;
 export default chatSlice.reducer;

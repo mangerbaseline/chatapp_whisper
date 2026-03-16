@@ -21,6 +21,10 @@ const messageSchema = new mongoose.Schema(
     readAt: {
       type: Date,
     },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
     attachments: [
       {
         url: { type: String, required: true },
