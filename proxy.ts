@@ -40,10 +40,9 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/") &&
     !pathname.startsWith("/auth") &&
     !pathname.startsWith("/api") &&
-    !pathname.startsWith("/logo.png") &&
-    !pathname.startsWith("/textLogo.png") &&
     !pathname.startsWith("/_next") &&
-    !pathname.startsWith("/favicon.ico");
+    !pathname.startsWith("/favicon.ico") &&
+    !pathname.includes(".");
 
   if (isProtectedRoute && !user) {
     return NextResponse.redirect(new URL("/auth/sign-in", req.url));
@@ -63,7 +62,8 @@ export async function proxy(req: NextRequest) {
     user.role === "ADMIN" &&
     !pathname.startsWith("/dashboard") &&
     !pathname.startsWith("/api") &&
-    !pathname.startsWith("/auth")
+    !pathname.startsWith("/auth") &&
+    !pathname.includes(".")
   ) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
