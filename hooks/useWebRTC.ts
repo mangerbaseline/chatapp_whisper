@@ -70,7 +70,6 @@ export function useWebRTC() {
         ],
       });
 
-
       pc.onicecandidate = (event) => {
         if (event.candidate && socket) {
           socket.emit(
@@ -311,7 +310,18 @@ export function useWebRTC() {
 
       const stream = await startLocalMedia();
       if (stream) {
-        addLocalTracksToPc(pc);
+        const transceivers = pc.getTransceivers();
+        for (const track of stream.getTracks()) {
+          const transceiver = transceivers.find(
+            (t) => t.receiver.track?.kind === track.kind && !t.sender.track,
+          );
+          if (transceiver) {
+            await transceiver.sender.replaceTrack(track);
+            transceiver.direction = "sendrecv";
+          } else {
+            pc.addTrack(track, stream);
+          }
+        }
       }
 
       if (pc.signalingState !== ("closed" as any)) {
