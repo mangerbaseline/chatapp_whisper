@@ -292,12 +292,9 @@ export function useWebRTC() {
       dispatch(addParticipant({ id: userId, ...userInfo }));
 
       const pc = createPeerConnection(userId);
-      // Wait for local media if not ready, so we don't send an empty offer
       const stream = await startLocalMedia();
       if (stream) {
-        stream.getTracks().forEach((track) => {
-          pc.addTrack(track, stream);
-        });
+        addLocalTracksToPc(pc);
       }
 
       const offer = await pc.createOffer();
@@ -320,14 +317,7 @@ export function useWebRTC() {
 
       const stream = await startLocalMedia();
       if (stream) {
-        stream.getTracks().forEach((track) => {
-          if ((pc.signalingState as any) !== "closed") {
-            const senders = pc.getSenders();
-            if (senders.length < stream.getTracks().length) {
-              pc.addTrack(track, stream);
-            }
-          }
-        });
+        addLocalTracksToPc(pc);
       }
 
       if (pc.signalingState !== ("closed" as any)) {
