@@ -70,12 +70,6 @@ export function useWebRTC() {
         ],
       });
 
-      if (!isScreen) {
-        if (isVideoRef.current) {
-          pc.addTransceiver("video", { direction: "sendrecv" });
-        }
-        pc.addTransceiver("audio", { direction: "sendrecv" });
-      }
 
       pc.onicecandidate = (event) => {
         if (event.candidate && socket) {
