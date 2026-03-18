@@ -13,7 +13,7 @@ interface Plan {
 
 interface Transaction {
   _id: string;
-  type: "purchase" | "transfer_sent" | "transfer_received";
+  type: "purchase" | "transfer_sent" | "transfer_received" | "redemption";
   amount: number;
   balanceAfter: number;
   amountMoney?: number;
@@ -40,6 +40,8 @@ interface WalletState {
   isLoading: boolean;
   error: string | null;
   successMessage: string | null;
+  receivedAmount?: number;
+  feeAmount?: number;
 }
 
 interface ApiError {
@@ -129,6 +131,21 @@ export const transferTokens = createAsyncThunk<
   } catch (err: any) {
     return rejectWithValue({
       message: err.response?.data?.message || "Transfer failed",
+    });
+  }
+});
+
+export const redeemTokens = createAsyncThunk<
+  { newBalance: number; receivedUsd: number; feeUsd: number; message: string },
+  { amountTokens: number },
+  { rejectValue: ApiError }
+>("wallet/redeemTokens", async (data, { rejectWithValue }) => {
+  try {
+    const res = await axios.post("/api/tokens/redeem", data);
+    return { ...res.data.data, message: res.data.message };
+  } catch (err: any) {
+    return rejectWithValue({
+      message: err.response?.data?.message || "Redemption failed",
     });
   }
 });
@@ -229,6 +246,22 @@ const walletSlice = createSlice({
         state.totalPages = action.payload.totalPages;
       })
       .addCase(fetchHistory.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.message || null;
+      })
+      // redeemTokens
+      .addCase(redeemTokens.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(redeemTokens.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.balance = action.payload.newBalance;
+        state.receivedAmount = action.payload.receivedUsd;
+        state.feeAmount = action.payload.feeUsd;
+        state.successMessage = action.payload.message;
+      })
+      .addCase(redeemTokens.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.message || null;
       });

@@ -58,6 +58,9 @@ export const PATCH = withApiHandler(async (req: NextRequest) => {
     dateOfBirth: true,
     image: true,
     mobileNo: true,
+    bankAccountStatus: true,
+    linkedBankLast4: true,
+    linkedBankName: true,
   });
 
   return apiSuccess(200, user, "User updated successfully.");

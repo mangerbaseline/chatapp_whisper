@@ -67,7 +67,7 @@ export default function ManagePlans() {
     name: "",
     description: "",
     price: "",
-    currency: "inr",
+    currency: "usd",
     tokens: "",
   });
 
@@ -91,7 +91,7 @@ export default function ManagePlans() {
       name: "",
       description: "",
       price: "",
-      currency: "inr",
+      currency: "usd",
       tokens: "",
     });
     setEditingPlan(null);
@@ -168,7 +168,7 @@ export default function ManagePlans() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = "inr") => {
+  const formatCurrency = (amount: number, currency: string = "usd") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency.toUpperCase(),
@@ -232,10 +232,10 @@ export default function ManagePlans() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Price (in INR)</label>
+                  <label className="text-sm font-medium">Price (in USD)</label>
                   <Input
                     type="number"
-                    placeholder="e.g., 200 = ₹200"
+                    placeholder="e.g., 1 = $1.00"
                     value={form.price}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -243,7 +243,7 @@ export default function ManagePlans() {
                         ...form,
                         price: val,
                         tokens: val
-                          ? Math.floor(parseFloat(val) / 2).toString()
+                          ? Math.floor(parseFloat(val) * 20).toString()
                           : "",
                       });
                     }}
@@ -252,11 +252,10 @@ export default function ManagePlans() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Currency</label>
                   <Input
-                    placeholder="inr"
+                    placeholder="usd"
                     value={form.currency}
-                    onChange={(e) =>
-                      setForm({ ...form, currency: e.target.value })
-                    }
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
               </div>

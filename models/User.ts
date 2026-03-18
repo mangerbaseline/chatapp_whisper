@@ -32,6 +32,9 @@ export interface IUser extends Document {
   tokenBalance: number;
   stripeCustomerId?: string;
   stripeAccountId?: string;
+  bankAccountStatus: "none" | "pending" | "verified" | "rejected";
+  linkedBankLast4?: string;
+  linkedBankName?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -140,6 +143,19 @@ const UserSchema = new Schema<IUser>(
       default: null,
     },
     stripeAccountId: {
+      type: String,
+      default: null,
+    },
+    bankAccountStatus: {
+      type: String,
+      enum: ["none", "pending", "verified", "rejected"],
+      default: "none",
+    },
+    linkedBankLast4: {
+      type: String,
+      default: null,
+    },
+    linkedBankName: {
       type: String,
       default: null,
     },

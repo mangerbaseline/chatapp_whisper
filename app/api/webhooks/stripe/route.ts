@@ -3,7 +3,12 @@ import stripe from "@/lib/stripe";
 import dbConnect from "@/lib/dbConnect";
 import RefundRequest from "@/models/RefundRequest";
 import { sendEmail } from "@/lib/mail";
-import { getRefundedEmailTemplate } from "@/lib/email-templates";
+import {
+  getRefundedEmailTemplate,
+  getRedemptionSuccessTemplate,
+  getRedemptionFailedTemplate,
+} from "@/lib/email-templates";
+import { User, TokenTransaction } from "@/models";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -56,6 +61,53 @@ export async function POST(req: NextRequest) {
               ),
             });
           }
+        }
+      }
+    } else if (event.type === "payout.paid" || event.type === "payout.failed") {
+      const payout = event.data.object as any;
+      const stripePayoutId = payout.id;
+      const status = event.type === "payout.paid" ? "completed" : "failed";
+
+      const transaction = await TokenTransaction.findOneAndUpdate(
+        { stripePayoutId },
+        { status },
+        { new: true },
+      ).populate("user");
+
+      if (transaction) {
+        console.log(`Transaction ${transaction._id} updated to ${status}`);
+
+        if (status === "failed") {
+          const user = await User.findById(transaction.user);
+          if (user) {
+            user.tokenBalance += transaction.amount;
+            await user.save();
+            console.log(
+              `Refunded ${transaction.amount} tokens to user ${user._id} due to payout failure.`,
+            );
+          }
+        }
+
+        const user: any = transaction.user;
+        if (user?.email) {
+          const payoutUsd = (transaction.amountMoney || 0) / 100;
+          await sendEmail({
+            to: user.email,
+            subject: `Payout ${status === "completed" ? "Successful" : "Failed"}`,
+            text: `Your payout of $${payoutUsd.toFixed(2)} has ${status === "completed" ? "been processed successfully" : "failed"}.`,
+            html:
+              status === "completed"
+                ? getRedemptionSuccessTemplate(
+                    user.firstName || user.email.split("@")[0],
+                    transaction.amount,
+                    payoutUsd,
+                  )
+                : getRedemptionFailedTemplate(
+                    user.firstName || user.email.split("@")[0],
+                    transaction.amount,
+                    payoutUsd,
+                  ),
+          });
         }
       }
     }

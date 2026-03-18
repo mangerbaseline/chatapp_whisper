@@ -21,6 +21,8 @@ import Profile from "@/components/Profile";
 import UpdatePassword from "@/components/UpdatePassword";
 import DeleteAccount from "@/components/DeleteAccount";
 import SupportTab from "@/components/SupportTab";
+import BankConnectForm from "@/components/BankConnectForm";
+import { CreditCard as PaymentsIcon } from "lucide-react";
 
 function SettingsTabs() {
   const searchParams = useSearchParams();
@@ -44,6 +46,10 @@ function SettingsTabs() {
         <TabsTrigger value="support" className="gap-2">
           <HeadphonesIcon className="h-4 w-4" />
           <span className="hidden sm:inline">Support</span>
+        </TabsTrigger>
+        <TabsTrigger value="payments" className="gap-2">
+          <PaymentsIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">Payments</span>
         </TabsTrigger>
       </TabsList>
 
@@ -108,6 +114,10 @@ function SettingsTabs() {
             <SupportTab />
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="payments" className="space-y-6">
+        <BankConnectForm />
       </TabsContent>
     </Tabs>
   );

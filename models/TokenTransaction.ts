@@ -4,7 +4,8 @@ export type TransactionType =
   | "purchase"
   | "transfer_sent"
   | "transfer_received"
-  | "refund";
+  | "refund"
+  | "redemption";
 
 export interface ITokenTransaction extends Document {
   user: mongoose.Types.ObjectId;
@@ -21,6 +22,8 @@ export interface ITokenTransaction extends Document {
   fromUser?: mongoose.Types.ObjectId;
   toUser?: mongoose.Types.ObjectId;
   note?: string;
+  status: "initiated" | "completed" | "failed";
+  stripePayoutId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +38,13 @@ const TokenTransactionSchema = new Schema<ITokenTransaction>(
     },
     type: {
       type: String,
-      enum: ["purchase", "transfer_sent", "transfer_received", "refund"],
+      enum: [
+        "purchase",
+        "transfer_sent",
+        "transfer_received",
+        "refund",
+        "redemption",
+      ],
       required: true,
     },
     amount: {
@@ -74,6 +83,15 @@ const TokenTransactionSchema = new Schema<ITokenTransaction>(
     note: {
       type: String,
       trim: true,
+    },
+    status: {
+      type: String,
+      enum: ["initiated", "completed", "failed"],
+      default: "completed",
+    },
+    stripePayoutId: {
+      type: String,
+      index: true,
     },
   },
   {

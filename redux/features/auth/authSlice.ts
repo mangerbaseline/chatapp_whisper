@@ -255,6 +255,38 @@ export const deleteAccount = createAsyncThunk<
   }
 });
 
+export const submitBankDetails = createAsyncThunk<
+  any,
+  {
+    accountHolderName: string;
+    accountNumber: string;
+    routingNumber: string;
+    bankName: string;
+    accountType: "individual" | "company";
+    dobDay: string;
+    dobMonth: string;
+    dobYear: string;
+    addressLine1: string;
+    addressCity: string;
+    addressState: string;
+    addressPostalCode: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    fullSsn: string;
+  },
+  { rejectValue: ApiError }
+>("auth/submitBankDetails", async (data, { rejectWithValue }) => {
+  try {
+    const res = await axios.post("/api/tokens/bank-account", data);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue({
+      message: err.response?.data?.message || "Failed to submit bank details",
+    });
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -459,6 +491,21 @@ const authSlice = createSlice({
         state.successMessage = action.payload.message;
       })
       .addCase(updatePublicProfileImage.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.message || null;
+      })
+      .addCase(submitBankDetails.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(submitBankDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (state.user) {
+          state.user.bankAccountStatus = "pending";
+        }
+        state.successMessage = action.payload.message;
+      })
+      .addCase(submitBankDetails.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.message || null;
       });

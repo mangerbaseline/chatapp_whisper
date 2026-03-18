@@ -99,6 +99,9 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     address: user.address,
     provider: user.provider,
     image: user.image,
+    bankAccountStatus: user.bankAccountStatus,
+    linkedBankLast4: user.linkedBankLast4,
+    linkedBankName: user.linkedBankName,
     token,
   };
 

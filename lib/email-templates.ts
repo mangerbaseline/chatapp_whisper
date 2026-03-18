@@ -388,3 +388,163 @@ export const getInviteEmailTemplate = (inviterName: string) => `
 </html>
 `;
 
+export const getBankVerificationSubmittedTemplate = (name: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #f8fafc; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+    h1 { color: #0f172a; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
+      <h1>Verification Submitted</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${name},</p>
+      <p>Your bank account details have been successfully submitted for verification.</p>
+      <p>Our admin team will review your information shortly. You'll receive another email once your account is verified and ready for token redemptions.</p>
+      <p>Thank you for your patience!</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+export const getBankVerificationApprovedTemplate = (name: string, bankName: string, last4: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #f0fdf4; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+    .details { background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; }
+    h1 { color: #166534; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
+      <h1>Bank Account Verified!</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${name},</p>
+      <p>Great news! Your bank account has been successfully verified. You can now redeem your tokens for payouts.</p>
+      <div class="details">
+        <p><strong>Bank:</strong> ${bankName}</p>
+        <p><strong>Account:</strong> ****${last4}</p>
+      </div>
+      <p>You can start redemptions from your dashboard anytime.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+export const getRedemptionInitiatedTemplate = (name: string, tokens: number, amount: number) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #eff6ff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+    .details { background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; }
+    h1 { color: #1e3a8a; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
+      <h1>Redemption Initiated</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${name},</p>
+      <p>Your redemption request for <strong>${tokens} tokens</strong> has been received and is being processed.</p>
+      <div class="details">
+        <p><strong>Net Payout:</strong> $${amount.toFixed(2)}</p>
+        <p><strong>Status:</strong> Initiated</p>
+      </div>
+      <p>We'll notify you as soon as the payout is completed by Stripe. This usually takes 1-3 business days.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+export const getRedemptionSuccessTemplate = (name: string, tokens: number, amount: number) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #f0fdf4; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+    .details { background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; }
+    h1 { color: #166534; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
+      <h1>Payout Successful!</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${name},</p>
+      <p>Your payout of $${amount.toFixed(2)} for <strong>${tokens} tokens</strong> has been successfully processed and sent to your bank account.</p>
+      <div class="details">
+        <p><strong>Amount:</strong> $${amount.toFixed(2)}</p>
+        <p><strong>Status:</strong> Completed</p>
+      </div>
+      <p>Thank you for being a part of Whispr!</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+export const getRedemptionFailedTemplate = (name: string, tokens: number, amount: number) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #fef2f2; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+    .details { background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ef4444; }
+    h1 { color: #991b1b; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${process.env.NEXT_PUBLIC_BASE_URL}/logo.png" alt="Chat App Logo" style="height: 40px; margin-bottom: 15px;" />
+      <h1>Payout Failed</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${name},</p>
+      <p>Unfortunately, your payout of $${amount.toFixed(2)} for <strong>${tokens} tokens</strong> has failed.</p>
+      <div class="details">
+        <p><strong>Status:</strong> Failed</p>
+        <p><strong>Action:</strong> Your tokens have been credited back to your balance.</p>
+      </div>
+      <p>Please double-check your bank account details or contact support for assistance.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;

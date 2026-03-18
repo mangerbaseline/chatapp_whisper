@@ -44,6 +44,14 @@ const nav = {
       url: "/dashboard/admin-tickets",
     },
     {
+      title: "Bank Verifications",
+      url: "/dashboard/bank-verification",
+    },
+    {
+      title: "Connected Accounts",
+      url: "/dashboard/connected-accounts",
+    },
+    {
       title: "Settings",
       url: "/dashboard/settings",
     },

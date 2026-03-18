@@ -23,6 +23,9 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     address: true,
     mobileNo: true,
     image: true,
+    bankAccountStatus: true,
+    linkedBankLast4: true,
+    linkedBankName: true,
     createdAt: true,
   });
 

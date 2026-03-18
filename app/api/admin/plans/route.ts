@@ -40,7 +40,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     name,
     description: description || "",
     price,
-    currency: currency || "usd",
+    currency: "usd",
     tokens,
     createdBy: userId,
   });

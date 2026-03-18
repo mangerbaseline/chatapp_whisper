@@ -10,7 +10,9 @@ import {
   clearWalletState,
   fetchBalance,
   fetchPlans,
+  redeemTokens,
 } from "@/redux/features/wallet/walletSlice";
+import RedeemForm from "./RedeemForm";
 import {
   Card,
   CardContent,
@@ -29,6 +31,7 @@ import {
   ArrowDownToLine,
   History,
   Loader2,
+  ArrowRightLeft,
 } from "lucide-react";
 
 export default function Wallet() {
@@ -106,6 +109,8 @@ export default function Wallet() {
         return <Send className="h-4 w-4 text-red-500" />;
       case "transfer_received":
         return <ArrowDownToLine className="h-4 w-4 text-green-500" />;
+      case "redemption":
+        return <ArrowRightLeft className="h-4 w-4 text-primary" />;
       default:
         return <Coins className="h-4 w-4" />;
     }
@@ -119,6 +124,8 @@ export default function Wallet() {
         return "Sent";
       case "transfer_received":
         return "Received";
+      case "redemption":
+        return "Redeemed";
       default:
         return type;
     }
@@ -141,9 +148,12 @@ export default function Wallet() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-full">
+        <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="buy" className="cursor-pointer">
             <CreditCard className="h-4 w-4 mr-1.5 hidden sm:inline" /> Buy
+          </TabsTrigger>
+          <TabsTrigger value="redeem" className="cursor-pointer">
+            <ArrowRightLeft className="h-4 w-4 mr-1.5 hidden sm:inline" /> Redeem
           </TabsTrigger>
           <TabsTrigger value="history" className="cursor-pointer">
             <History className="h-4 w-4 mr-1.5 hidden sm:inline" /> History
@@ -210,6 +220,10 @@ export default function Wallet() {
           )}
         </TabsContent>
 
+        <TabsContent value="redeem" className="space-y-4 mt-4">
+          <RedeemForm />
+        </TabsContent>
+
         <TabsContent value="history" className="space-y-4 mt-4">
           {isLoading && transactions.length === 0 ? (
             <div className="space-y-3">
@@ -256,12 +270,12 @@ export default function Wallet() {
                     <div className="text-right">
                       <p
                         className={`text-sm font-semibold ${
-                          tx.type === "transfer_sent"
+                          tx.type === "transfer_sent" || tx.type === "redemption"
                             ? "text-red-500"
                             : "text-green-500"
                         }`}
                       >
-                        {tx.type === "transfer_sent" ? "-" : "+"}
+                        {tx.type === "transfer_sent" || tx.type === "redemption" ? "-" : "+"}
                         {tx.amount}
                       </p>
                     </div>
